@@ -1,247 +1,206 @@
 #!/usr/bin/env python3
-"""Publish a directory of Markdown files as Google Docs with cross-linking.
-
-This pipeline supports two modes:
-1. **Standard**: Publish each MD file as a separate Google Doc, resolving cross-links.
-2. **Combined**: Combine all MD files into ONE Google Doc with page breaks.
-
-The primary method uses the **Drive API** (`text/markdown` import), which preserves
-formatting (headings, lists, tables, links) natively in a single API call.
 """
-import os, re, sys, io, time
-sys.path.insert(0, "/home/raymond-christopher/.hermes/skills/productivity/google-docs/scripts")
+Publish Markdown Directory to Google Docs (Drive Import Method).
+
+This script scans a directory of Markdown files, uploads them to Google Drive
+as native Google Docs (preserving tables/formatting instantly), and fixes
+internal cross-links (e.g. linking `design.md` to the newly created
+'Design' Google Doc).
+
+Usage:
+    python3 publish_pipeline.py /path/to/markdown/folder
+"""
+
+import sys
+import os
+import io
+import re
+import time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-# Import formatting functions for fallback/manual styling
-try:
-    from docs_api import _apply_heading_styles, _apply_inline_styles, _apply_bullets
-except ImportError:
-    _apply_heading_styles = None
-    _apply_inline_styles = None
-    _apply_bullets = None
+# ── Configuration ────────────────────────────────────────────────
+TOKEN_PATH = os.path.expanduser("~/.hermes/google_token.json")
+SCOPES = [
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/drive",
+]
 
-TOKEN = "/home/raymond-christopher/.hermes/google_token.json"
-creds = Credentials.from_authorized_user_file(TOKEN)
-if creds.expired and creds.refresh_token:
-    creds.refresh(Request())
-    with open(TOKEN, "w") as f: f.write(creds.to_json())
+BASE = "https://docs.google.com/document/d/"
 
-drive = build("drive", "v3", credentials=creds)
-docs = build("docs", "v1", credentials=creds)
+def get_services():
+    creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
+    if not creds.valid:
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            with open(TOKEN_PATH, "w") as f: f.write(creds.to_json())
+        else:
+            raise ValueError("Credentials invalid. Please run setup.py first.")
+    return build("drive", "v3", credentials=creds), build("docs", "v1", credentials=creds)
 
 def find_md_files(directory):
-    md_files = []
-    for root, dirs, files in os.walk(directory):
-        for f in files:
-            if f.endswith('.md'):
-                md_files.append(os.path.join(root, f))
-    return md_files
+    files = []
+    for root, _, filenames in os.walk(directory):
+        for f in filenames:
+            if f.endswith(".md"):
+                files.append(os.path.join(root, f))
+    return sorted(files)
 
-def title_from_filename(filename):
-    """Convert filename to Title Case."""
-    base = os.path.splitext(os.path.basename(filename))[0]
-    return base.replace('-', ' ').replace('_', ' ').title()
-
-def get_gdoc_url(doc_id):
-    return f"https://docs.google.com/document/d/{doc_id}/edit"
-
-def upload_md_to_drive(title, md_content):
-    """
-    Upload Markdown content to Drive, creating a Google Doc.
-    Uses the native Drive import which preserves formatting (Tables, Lists, Headers).
-    Returns the doc_id.
-    """
-    file_metadata = {
-        'name': title,
-        'mimeType': 'application/vnd.google-apps.document'
-    }
-    media = MediaIoBaseUpload(
-        io.BytesIO(md_content.encode('utf-8')), 
-        mimetype='text/markdown', 
-        resumable=True,
-        chunksize=1024*1024  # 1MB chunks
-    )
+def get_or_create_doc(drive_s, title, md_content=None):
+    """Find existing doc by title, or create a new one via Drive Import."""
     
-    # Retry loop for 429s
-    for attempt in range(3):
-        try:
-            file = drive.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-            return file['id']
-        except Exception as e:
-            if "429" in str(e) or "Rate" in str(e):
-                wait = 20 * (attempt + 1)
-                print(f"    Rate limited. Waiting {wait}s...")
-                time.sleep(wait)
-            else:
-                raise e
+    # 1. Try to find existing
+    results = drive_s.files().list(
+        q=f"name='{title}' and mimeType='application/vnd.google-apps.document' and trashed=false",
+        fields="files(id, name, modifiedTime)"
+    ).execute()
+    
+    if results.get("files"):
+        # Return the most recently modified one
+        files = sorted(results["files"], key=lambda x: x.get("modifiedTime", ""), reverse=True)
+        file_id = files[0]["id"]
+        print(f"  ♻️  Found existing doc: {title} (ID: {file_id})")
+        return file_id
+
+    # 2. Create new via Drive Import (Fast & Perfect Formatting)
+    if md_content:
+        print(f"  ✨ Creating new doc: {title}")
+        file_metadata = {"name": title, "mimeType": "application/vnd.google-apps.document"}
+        media = MediaIoBaseUpload(
+            io.BytesIO(md_content.encode("utf-8")),
+            mimetype="text/markdown",
+            resumable=True
+        )
+        file = drive_s.files().create(body=file_metadata, media_body=media, fields="id").execute()
+        print(f"  🆕 Created ID: {file['id']}")
+        return file["id"]
     return None
 
-def clear_and_update_doc(doc_id, rewritten_md):
-    """
-    Update an existing Google Doc in place (keeps same ID).
-    Uses Docs API to clear and re-insert, then formats manually.
-    """
-    try:
-        doc = docs.documents().get(documentId=doc_id).execute()
-        if 'body' in doc and 'content' in doc['body'] and len(doc['body']['content']) > 0:
-            end_index = doc['body']['content'][-1].get('endIndex', 1)
-            if end_index > 1:
-                docs.documents().batchUpdate(documentId=doc_id, body={
-                    "requests": [{"deleteContentRange": {"range": {"startIndex": 1, "endIndex": end_index - 1}}}]
-                }).execute()
-        
-        docs.documents().batchUpdate(documentId=doc_id, body={
-            "requests": [{"insertText": {"location": {"index": 1}, "text": rewritten_md}}]
-        }).execute()
-        
-        if _apply_heading_styles: _apply_heading_styles(doc_id)
-        # _apply_inline_styles is slow, so might be skipped if content is large
-        # but for accuracy we call it.
-        # if _apply_inline_styles: _apply_inline_styles(doc_id) 
-        if _apply_bullets: _apply_bullets(doc_id)
-        
-        return True
-    except Exception as e:
-        print(f"  Error updating {doc_id}: {e}")
-        return False
-
-def rewrite_markdown_links(md_content, link_map):
+def rewrite_links(md_content, link_map):
     """Replace relative Markdown links with Google Docs URLs."""
-    def replace_link(m):
-        full_url = m.group(2)
-        # Skip external URLs, anchors, and mailto links
-        if full_url.startswith(('http://', 'https://', '#', 'mailto:')):
-            return m.group(0)
+    def replace_match(match):
+        full_url = match.group(2)
+        # Skip external links and anchors
+        if full_url.startswith(("http://", "https://", "#", "mailto:")):
+            return match.group(0)
         
-        base_file = full_url.split('#')[0]
-        anchor = '#' + full_url.split('#')[1] if '#' in full_url else ''
+        base_file = full_url.split("#")[0]
+        anchor = "#" + full_url.split("#")[1] if "#" in full_url else ""
         
-        # Match logic: exact basename or relative path
-        target_url = None
-        for key, value in link_map.items():
-            if base_file == key or base_file.endswith('/' + key) or base_file.endswith(key):
-                target_url = value
-                break
+        # Check map for base file (e.g., "design.md")
+        if base_file in link_map:
+            return f"[{match.group(1)}]({link_map[base_file]}{anchor})"
+        # Check for basename match (e.g. path/to/design.md)
+        for key, val in link_map.items():
+            if base_file.endswith(key):
+                return f"[{match.group(1)}]({val}{anchor})"
         
-        if target_url:
-            return f"[{m.group(1)}]({target_url}{anchor})"
-        return m.group(0)
+        return match.group(0)
     
-    return re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_link, md_content)
+    return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", replace_match, md_content)
 
-def publish_combined(mega_title, md_files_and_content):
+def update_doc_content(drive_s, doc_id, md_content):
     """
-    Publish multiple MD files into ONE Google Doc separated by page breaks.
-    Returns the URL.
+    Updates a Google Doc in place by clearing its content and re-inserting.
+    Note: This uses the Docs API which doesn't fully replicate Drive's native
+    Markdown import styling, but it keeps the Document ID intact.
     """
-    combined = ""
-    for filename, title, content in md_files_and_content:
-        combined += f"# {title}\n\n"
-        combined += content
-        combined += "\n\n\f\n\n"  # Form feed creates page/section break
+    docs_s = build("docs", "v1", credentials=drive_s._http.credentials) # Reuse creds
+    try:
+        doc = docs_s.documents().get(documentId=doc_id).execute()
+        end_index = doc["body"]["content"][-1].get("endIndex", 1)
+        
+        # Clear content
+        if end_index > 1:
+            docs_s.documents().batchUpdate(documentId=doc_id, body={
+                "requests": [{"deleteContentRange": {"range": {"startIndex": 1, "endIndex": end_index - 1}}}]
+            }).execute()
+            
+        # Insert text
+        docs_s.documents().batchUpdate(documentId=doc_id, body={
+            "requests": [{"insertText": {"location": {"index": 1}, "text": md_content}}]
+        }).execute()
+        print(f"  🔄 Updated content (ID: {doc_id})")
+    except Exception as e:
+        print(f"  ⚠️  Failed to update doc {doc_id}: {e}")
+
+def main():
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <markdown_directory>")
+        sys.exit(1)
+
+    md_dir = sys.argv[1]
+    if not os.path.isdir(md_dir):
+        print(f"Error: {md_dir} is not a valid directory.")
+        sys.exit(1)
+
+    print("═══════════════════════════════════════════════════════════════")
+    print(" 🚀 Google Docs Publishing Pipeline")
+    print("═══════════════════════════════════════════════════════════════")
     
-    print(f"Combined size: {len(combined)} bytes")
-    doc_id = upload_md_to_drive(mega_title, combined)
-    return get_gdoc_url(doc_id) if doc_id else None
+    try:
+        drive_s, docs_s = get_services()
+    except Exception as e:
+        print(f"❌ Auth Error: {e}")
+        return
 
-def publish_individual(md_files, update_existing=True):
-    """
-    Publish each MD file as a separate Google Doc.
-    Resolves cross-links to point to the new Docs.
-    """
-    print("Step 1: Checking for existing Google Docs...")
-    gdoc_map = {}
-    link_map = {}
+    # 1. Scan files
+    md_files = find_md_files(md_dir)
+    print(f"\n📂 Scanned {len(md_files)} Markdown files.")
+
+    # 2. Initial Pass: Create Docs (without links fixed) to get IDs
+    #    We do this first so we have a map of IDs for the links in the content.
+    print("\n📤 Phase 1: Uploading/Updating Documents (Initial Pass)...")
     
-    for f_path in md_files:
-        basename = os.path.basename(f_path)
-        title = title_from_filename(basename)
-        
-        # Check for existing
-        res = drive.files().list(
-            q=f"name='{title}' and mimeType='application/vnd.google-apps.document' and trashed=false",
-            fields="files(id)"
-        ).execute()
-        
-        doc_id = None
-        if res['files']:
-            doc_id = res['files'][0]['id']
-        
-        gdoc_map[basename] = {
-            'path': f_path,
-            'id': doc_id,
-            'title': title,
-            'url': get_gdoc_url(doc_id) if doc_id else None
-        }
-
-    print("Step 2: Building Link Map for Cross-Referencing...")
-    for basename, info in gdoc_map.items():
-        link_map[basename] = info['url']
-
-    print("Step 3: Publishing Files...")
-    for basename, info in gdoc_map.items():
-        with open(info['path'], 'r', encoding='utf-8') as f:
+    link_map = {} # filename -> google_doc_url
+    
+    # Sort to ensure we process files in a deterministic order
+    # We strip path relative to md_dir for the map keys
+    for filepath in md_files:
+        rel_path = os.path.relpath(filepath, md_dir)
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
         
-        # Rewrite internal links
-        new_content = rewrite_markdown_links(content, link_map)
+        # Generate a clean title from filename
+        title = os.path.splitext(os.path.basename(filepath))[0]
+        title = title.replace("-", " ").replace("_", " ").title()
+        if title == "Readme": title = "Readme"
         
-        # Determine URL
-        current_url = None
+        doc_id = get_or_create_doc(drive_s, title, None)
         
-        if update_existing and info['id']:
-            # Delete old and re-create to get native Drive formatting
-            print(f"  Re-creating '{info['title']}' (to use native Drive import)...")
-            drive.files().delete(fileId=info['id']).execute()
-            new_id = upload_md_to_drive(info['title'], new_content)
-            current_url = get_gdoc_url(new_id)
-        elif info['id']:
-            # In-place update (no Drive import quality)
-            print(f"  Updating '{info['title']}' in-place...")
-            # Use clear_and_update_doc logic here
-            clear_and_update_doc(info['id'], new_content)
-            current_url = get_gdoc_url(info['id'])
-        else:
-            # New creation
-            print(f"  Creating '{info['title']}'...")
-            new_id = upload_md_to_drive(info['title'], new_content)
-            current_url = get_gdoc_url(new_id)
-            
-        gdoc_map[basename]['url'] = current_url
-        print(f"    -> {current_url}")
+        if doc_id:
+            url = f"{BASE}{doc_id}/edit"
+            link_map[rel_path] = url
+            # Also map just the filename for simplicity
+            link_map[os.path.basename(filepath)] = url
 
-    return gdoc_map
+    # 3. Second Pass: Rewrite links and Update Content
+    print("\n🔗 Phase 2: Fixing Cross-Links and Finalizing...")
+    
+    for filepath in md_files:
+        rel_path = os.path.relpath(filepath, md_dir)
+        with open(filepath, encoding="utf-8") as f:
+            content = f.read()
+            
+        if not rel_path in link_map:
+            continue
+            
+        doc_id = link_map[rel_path].split("/")[4] # Extract ID
+        
+        # Rewrite links
+        print(f"  ✍️  Rewriting links for {os.path.basename(filepath)}...")
+        new_content = rewrite_links(content, link_map)
+        
+        # Update doc
+        update_doc_content(drive_s, doc_id, new_content)
+        
+        time.sleep(1) # Politeness for API
+
+    print("\n✅ All done! Your documents are live and linked.")
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("directory", help="Directory containing Markdown files")
-    parser.add_argument("--combined", action="store_true", help="Combine all files into one document")
-    parser.add_argument("--title", default="Combined Markdown Export", help="Title for combined doc")
-    args = parser.parse_args()
-    
-    md_files = find_md_files(args.directory)
-    
-    if args.combined:
-        print(f"Publishing {len(md_files)} files as ONE combined doc...")
-        combined_content = []
-        for f_path in md_files:
-            basename = os.path.basename(f_path)
-            with open(f_path) as f: combined_content.append((basename, title_from_filename(basename), f.read()))
-        
-        url = publish_combined(args.title, combined_content)
-        if url:
-            print(f"\nSUCCESS: {url}")
-        else:
-            print("Failed to publish.")
-    else:
-        print(f"Publishing {len(md_files)} files individually...")
-        results = publish_individual(md_files)
+    main()

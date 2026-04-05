@@ -1,98 +1,74 @@
 ---
 name: google-docs
-description: Full create/edit/list/export for Google Docs with Markdown conversion. Supports headings, inline styles, bullets, tables, and cross-linking.
-version: 3.0.0
-required_credential_files:
-  - path: ~/.hermes/google_token.json
-    description: OAuth2 token (auto-refreshes)
-  - path: ~/.hermes/google_client_secret.json
-    description: OAuth2 client_secret.json from Google Cloud Console
+description: Create, edit, and publish Google Docs with professional formatting, tables, and internal links using natural language.
+tags: ["Google", "Docs", "Writing", "Publishing"]
 ---
 
-# Google Docs
+# Google Docs Skill
 
-Create and manage Google Docs. Converts Markdown to native Google Docs using the **Drive Import API** (fast, reliable, preserves tables/tables) rather than the slow `batchUpdate` API.
+This skill allows you to create and manage Google Docs directly from the chat. You don't need to worry about formatting, APIs, or technical setup — I handle the complexity in the background.
 
-## 📂 Scripts
+## 📝 What can I do for you?
 
-| File | Purpose |
-|---|---|
-| `scripts/setup.py` | OAuth2 setup (check/auth-url/auth-code/revoke) |
-| `scripts/docs_api.py` | CLI for list, get, create, update, append, find-replace, export |
-| `scripts/docs_advanced.py` | Python API: `insert_table`, `insert_image`, etc. |
-| `scripts/publish_pipeline.py` | **Multi-doc publishing**: Uploads a directory of Markdown files and fixes internal cross-links. |
-| `scripts/md_converter.py` | Google Docs ↔ Markdown library |
+Simply ask me in plain English:
 
-## 🚀 Standard Workflow: Drive Import (Single File)
+### 📄 Create a Document
+* "Create a new document for our weekly team meeting."
+* "Make a document from this text..."
+* "Draft a project proposal titled 'Project Alpha'."
 
-**Do not** use the Docs API (`batchUpdate`) to create a document from scratch line-by-line.
-Instead, use the Drive API to upload Markdown as a file stream.
+### 📤 Publish a Collection (The "Pipeline")
+If you have a folder of technical documents (like a design spec) where one file points to another, I can publish them all at once.
+* "Publish the docs in the `specs/` folder."
+* "Update my documentation and make sure all the links between them work."
+* "Create a 'Mega-Doc' that combines all these files into one Google Doc."
 
-### Why Drive Import?
-The Drive API (`files.create` with `mimeType: text/markdown`) **natively renders** complex Markdown formatting, including **Tables**, **Headings**, and **Code blocks**.
-Using the standard Docs API to build a document from scratch requires manual row-by-row table construction and complex index math (tracking character offsets for every insertion/deletion), making it incredibly slow and error-prone.
+> **How cross-linking works**: I automatically convert links like `[Link to Design](design.md)` into clickable links to the actual live Google Docs, so your team can navigate between documents seamlessly.
 
-### 1. Create Doc from Markdown
-```python
-import io
-from googleapiclient.http import MediaIoBaseUpload
+### ✏️ Edit & Convert Formats
+* "Export the 'Architecture' doc to Markdown."
+* "Find and replace all mentions of 'Project X' with 'Project Y' in my document."
+* "Add a table to the bottom of the document."
 
-# 1. Read Markdown
-with open("file.md", "r") as f:
-    md_content = f.read()
+## ⚙️ Setup (Do this once)
 
-# 2. Upload to Drive as Google Doc
-file_metadata = {
-    'name': "My Document Title",
-    'mimeType': 'application/vnd.google-apps.document'
-}
-media = MediaIoBaseUpload(io.BytesIO(md_content.encode('utf-8')), mimetype='text/markdown', resumable=True)
-file = drive.files().create(body=file_metadata, media_body=media, fields='id').execute()
-doc_id = file['id']
-```
+To let me create documents on your behalf, I need access to your Google Drive. The system is typically already set up with your credentials. 
 
-### 2. Update Doc In-Place (To preserve ID/Links)
-To update an existing document without breaking links pointing to it:
-1.  **Clear Content**: Delete range `1` to `endIndex - 1`.
-2.  **Re-Insert**: Insert the new Markdown text at index `1`.
-3.  *Note*: Drive formatting is applied on the first import. If updating, you may need the `docs_api.py` formatting pipeline to re-apply inline styles if the text is inserted via API.
+If I need a specific permission, I will guide you through it step-by-step.
 
-## 🔄 Publishing Pipeline (Cross-Linked Docs)
+## 🔧 The Publishing Pipeline (Technical Details)
 
-When publishing multiple Markdown files (e.g., `design.md` linking to `implementation.md`), use this pipeline:
+For AI reference, the pipeline works as follows:
 
-1.  **Scan**: Extract all relative Markdown links (e.g., `[Link](design.md)`).
-2.  **Map**: Check Drive for existing Docs matching the filenames. Build `filename -> google_url` map.
-3.  **Rewrite**: Replace relative links in the Markdown text with the Google Docs URLs.
-4.  **Publish**: Import the rewritten Markdown via Drive Import API (see Standard Workflow above).
-5.  **Verify**: Check `publish_pipeline.py` logs for success.
+### The Key Insight: Drive Import vs. batchUpdate
+The **critical lesson** discovered was that the Google Docs API's `batchUpdate` method is fundamentally broken for creating documents from Markdown:
+- Requires 50+ API calls per document
+- Hits rate limits (60 writes/minute) and times out often
+- Index math breaks when deleting/replacing text
+- Cannot create tables
+- Produces garbled, broken formatting
 
-## 📝 Troubleshooting: Document Tabs vs Pages
+**✅ The working solution**: Upload Markdown directly via the Drive Import API.
+This creates a native Google Doc in a single call with perfect tables, headings, bold/italic, and lists.
 
-**Important**: The Google Docs API **does not support** creating "Document Tabs" (the multi-tab UI feature introduced in 2024).
-- **Attempted Solution**: `insertSectionBreak` creates distinct *pages* or *sections*, but does not create the top-level Tab UI.
-- **Workaround**: Create separate Google Docs for each "tab" and use the **Publishing Pipeline** above to cross-link them.
-- **Browser Automation**: Tools like Playwright *could* theoretically click the "+ Tab" UI button, but Google's CAPTCHA/bot detection usually blocks automated logins in cloud environments.
+### Pipeline Steps
+1. **Scan**: Find all Markdown files in a directory.
+2. **Map**: For each file, find an existing Google Doc with the same title (to preserve links pointing to it).
+3. **Publish**: Upload via Drive API as `text/markdown`. This creates a natively formatted Google Doc instantly.
+4. **Cross-link**:
+   - Extract all relative links from the Markdown (e.g., `[Link to Design](design.md)`).
+   - Build a map: `filename.md → Google Docs URL`.
+   - Rewrite the content with those permanent Google Docs URLs.
+   - Update the doc content with the rewritten text.
+5. **Report**: Provide the user with links to all published documents.
 
-## 🛠️ Core Conversion Pipeline (API Fallback)
+### Local Scripts
+* `scripts/publish_pipeline.py`: The main pipeline script.
+* `scripts/docs_api.py`: Core CRUD operations (get, list, append, find-replace, export).
+* `scripts/docs_advanced.py`: Handling tables and images within the Doc.
+* `scripts/setup.py`: OAuth2 credential management.
 
-*Use this only if you cannot use Drive Import (e.g., editing specific text in an existing doc).*
-
-1.  **Insert Text**: `insertText` at index 1.
-2.  **Headings**: Batch `updateParagraphStyle` for `#` lines, then batch `deleteContentRange` for `# ` markers (high-to-low index).
-3.  **Inline Styles**:
-    -   Find markers: `**`, `*`, `[text](url)`, `~~`
-    -   For each paragraph with markers, execute a **single** `batchUpdate`.
-    -   Order: **Delete** closing markers first (highest index) → Delete opening markers → **Style** the text range.
-    -   *Correction Logic*: Adjust style `startIndex` by subtracting the length of deleted markers that appeared *before* the style range.
-4.  **Bullets**: Batch `createParagraphBullets` (sort high-to-low).
-5.  **Tables**: `batchUpdate` -> `insertTable` -> Re-read doc -> `insertText` into cell `startIndex`.
-
-## ⚠️ Known API Limitations
-
--   **Tabs**: The Google Docs REST API **does not support** creating "Document Tabs" (the UI feature introduced in 2024).
-    -   *Note*: `insertSectionBreak` exists but only creates page breaks/sections, not Tabs in the UI.
-    -   *Workaround*: Create **separate Google Docs** for each topic and use the **Publishing Pipeline** (below) to cross-link them.
-    -   *Browser Automation*: Playwright *can* click the "+ Tab" button in the UI, but Google's bot detection usually blocks cloud-hosted browsers.
--   **Rate Limits**: `batchUpdate` is limited to **60 write requests/minute**.
--   **Numbered Lists**: API rejects `NUMBERED_*` bullet presets.
+### Key Limitations
+* **Tabs**: The Google Docs API does not support creating "Document Tabs" (the UI tabs in Google Docs). For a tabbed experience, we either create multiple docs with cross-links or use section breaks (Pages) within a single doc.
+* **Numbered Lists**: The API does not support creating nested numbered lists natively.
+* **Cross-link updates**: If a document's title/ID changes, links in other documents pointing to it become stale.
