@@ -25,7 +25,12 @@ Create and manage Google Docs. Converts Markdown to native Google Docs using the
 
 ## 🚀 Standard Workflow: Drive Import (Single File)
 
-**Do not** use `batchUpdate` to create a document from scratch line-by-line. Instead, use the Drive API to upload Markdown as a file stream. This creates a natively formatted Google Doc instantly.
+**Do not** use the Docs API (`batchUpdate`) to create a document from scratch line-by-line.
+Instead, use the Drive API to upload Markdown as a file stream.
+
+### Why Drive Import?
+The Drive API (`files.create` with `mimeType: text/markdown`) **natively renders** complex Markdown formatting, including **Tables**, **Headings**, and **Code blocks**.
+Using the standard Docs API to build a document from scratch requires manual row-by-row table construction and complex index math (tracking character offsets for every insertion/deletion), making it incredibly slow and error-prone.
 
 ### 1. Create Doc from Markdown
 ```python
