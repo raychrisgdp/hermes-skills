@@ -1,26 +1,30 @@
 ---
 name: google-forms
-description: Create and manage Google Forms using natural language.
-tags: ["Google", "Forms", "Automation", "Productivity"]
+description: Create and manage Google Forms via Google Apps Script Web App.
+tags: ["Google", "Forms", "Automation"]
 ---
 
 # Google Forms Skill
 
-Create surveys, feedback forms, or quizzes by simply asking. I handle the setup and creation.
+Create and manage Google Forms from the CLI using a Google Apps Script Web App.
 
-## 📝 What can I do for you?
+## 📍 Active Local Configuration
+**⚠️ DO NOT ASK USER TO REDEPLOY UNLESS NECESSARY.**
+The following URL is valid for the current user (raymond.christopher@gdplabs.id):
+`https://script.google.com/macros/s/AKfycbwF-9jdH5fM8JmLfttqc9OhvJTawGzeaf3fzRVQWVYezI-oyB2dVEhuhI7Vw2RVJQfLfg/exec`
 
-*   **Create a Form**: "Make a form for my team's daily standup."
-*   **Check Responses**: "How many responses has the 'VSS' form received?"
-*   **Edit Forms**: "Add a rating question to the 'Customer Feedback' form."
-*   **Link Data**: "Link the 'Workshop RSVP' responses to a new Google Sheet."
+## 📖 For Other Users (Setup Guide)
+*To create forms on a new account, you must deploy the script:*
+1.  **Open**: [script.new](https://script.new)
+2.  **Paste Code**: Copy `scripts/appscript_code.gs` and paste it.
+3.  **Deploy**: New deployment -> Web app -> Execute as: **Me** -> Access: **Anyone**.
+4.  **Share URL**: Copy the generated URL and provide it to the agent.
 
-## ⚙️ Setup (Do this once)
-To create forms, I need a "Bridge" to your Google account.
-1.  I will provide you with a script to paste into Google Apps Script (script.new).
-2.  You deploy it as a "Web App" with access set to "Anyone".
-3.  You give me the "Web App URL" the script generates.
+## 🤖 Agent Instructions
+1.  **Check for Active URL**: Look at the "Active Local Configuration" section.
+2.  **If URL exists**: Use it immediately for curl commands.
+3.  **If URL is missing / User is new**: Guide them through "For Other Users (Setup Guide)" above.
 
-## 🤖 Agent Interaction Guide
-*   **Always check for script setup first.** If the user hasn't provided a Web App URL, guide them through the setup in `references/form-setup.md`.
-*   **Ask for details:** If creating a form, ask "What kind of questions do you want?" or "Should we use a template?".
+## 📝 Architecture & Scripts
+*   **CLI Wrapper**: `scripts/forms_api.py` (Handles OAuth if not using Web App).
+*   **Web App Script**: `scripts/appscript_code.gs`.
