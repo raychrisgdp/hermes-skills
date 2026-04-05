@@ -1,46 +1,36 @@
 ---
 name: pr_summary
-description: "Generate a weekly PR activity summary report using a self-contained script."
+description: Generate a PR activity summary using a self-contained script.
 tags: ["GitHub", "PR", "Workflow", "Automation"]
 ---
 
 # PR Summary Skill
 
-Generates a comprehensive Pull Request activity summary for you with one simple command.
+Generates a comprehensive Pull Request activity summary.
 
----
+## ✍️ What can I do for you?
 
-## ✨ What you can ask me:
+*   "What's my weekly PR summary?"
+*   "Generate a report for @johndoe for the last 14 days."
+*   "Save my activity for the 'frontend' repo to a file called `frontend_report.md`."
 
-* "Generate my PR summary for this week."
-* "Make a report of my activity for user `johndoe` in the `my-org` organization."
-* "Show me PRs for the last 14 days and save it to `report.md`."
+## 🤖 Agent Interaction Guide (How I handle requests)
 
----
+### 1. Check for Parameters
+Before running, I ask myself: "Do I have the username?"
+*   **No username?** I will ask: "Who should I generate the report for?"
+*   **No timeframe?** I will ask: "Should I look at the last 7 days?" (or use 7 as default).
 
-## 🚀 Quick Start (Run from Terminal)
+### 2. Validate Script
+I ensure `scripts/pr_summary.sh` exists.
+*   **If missing?** "I can't find the PR summary script locally."
+*   **If present?** Proceed to run it.
 
-If you want to run the report yourself in the terminal, use this script:
+### 3. Execution
+I run the script with your parameters:
+`./scripts/pr_summary.sh -u <username> -d <days>`
 
-📂 `~/hermes-skills/pr_summary/scripts/pr_summary.sh`
-
-**Example Command:**
-```bash
-./pr_summary.sh -u your_username -o your_organization -d 7
-```
-
-**Options:**
-* `-u` : Your GitHub username (Required)
-* `-o` : GitHub Organization (Default: `GDP-ADMIN`)
-* `-d` : Days to look back (Default: 7)
-* `-f` : Output filename (Default: `pr_activity_report.md`)
-* `-h` : Help menu
-
----
-
-## ⚙️ Requirements (One-Time Setup)
-
-1.  **GitHub CLI**: Install it from [cli.github.com](https://cli.github.com/).
-2.  **Login**: Run `gh auth login` in your terminal once.
-
-That's it! Once you're logged in, the script will automatically pull data and generate reports for any user in any organization.
+## ⚙️ Setup (One-Time)
+You need the GitHub CLI installed and logged in:
+1. `sudo apt install gh` (or download from cli.github.com)
+2. `gh auth login`
