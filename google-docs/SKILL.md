@@ -62,6 +62,13 @@ When publishing multiple Markdown files (e.g., `design.md` linking to `implement
 4.  **Publish**: Import the rewritten Markdown via Drive Import API (see Standard Workflow above).
 5.  **Verify**: Check `publish_pipeline.py` logs for success.
 
+## 📝 Troubleshooting: Document Tabs vs Pages
+
+**Important**: The Google Docs API **does not support** creating "Document Tabs" (the multi-tab UI feature introduced in 2024).
+- **Attempted Solution**: `insertSectionBreak` creates distinct *pages* or *sections*, but does not create the top-level Tab UI.
+- **Workaround**: Create separate Google Docs for each "tab" and use the **Publishing Pipeline** above to cross-link them.
+- **Browser Automation**: Tools like Playwright *could* theoretically click the "+ Tab" UI button, but Google's CAPTCHA/bot detection usually blocks automated logins in cloud environments.
+
 ## 🛠️ Core Conversion Pipeline (API Fallback)
 
 *Use this only if you cannot use Drive Import (e.g., editing specific text in an existing doc).*
@@ -78,6 +85,9 @@ When publishing multiple Markdown files (e.g., `design.md` linking to `implement
 
 ## ⚠️ Known API Limitations
 
--   **Tabs**: The API **does not** support creating "Document Tabs" (UI tabs). Use `insertSectionBreak` (creates pages) or separate documents with cross-links.
+-   **Tabs**: The Google Docs REST API **does not support** creating "Document Tabs" (the UI feature introduced in 2024).
+    -   *Note*: `insertSectionBreak` exists but only creates page breaks/sections, not Tabs in the UI.
+    -   *Workaround*: Create **separate Google Docs** for each topic and use the **Publishing Pipeline** (below) to cross-link them.
+    -   *Browser Automation*: Playwright *can* click the "+ Tab" button in the UI, but Google's bot detection usually blocks cloud-hosted browsers.
 -   **Rate Limits**: `batchUpdate` is limited to **60 write requests/minute**.
 -   **Numbered Lists**: API rejects `NUMBERED_*` bullet presets.

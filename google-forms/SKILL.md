@@ -1,104 +1,76 @@
 ---
 name: google-forms
-description: Create and automate Google Forms via Google Apps Script Web App. No OAuth needed — runs under your personal Google account. Supports create, list, get, addQuestions, responses, and convertListToRating actions.
-tags: ["Google", "Forms", "Apps Script", "Automation", "Medical"]
-related_skills: ["google-workspace"]
+description: Create and manage Google Forms using natural language. The AI handles the technical details.
+tags: ["Google", "Forms", "Automation", "Productivity"]
 ---
 
-# Google Forms
+# Google Forms Skill
 
-Create and manage Google Forms from the CLI using a Google Apps Script Web App. No OAuth, no Google Cloud Console — just deploy and use curl.
+This skill allows you to create, edit, and manage Google Forms just by asking. You don't need to know about APIs, code, or technical setups—I handle all that in the background.
 
-## Architecture
+## What can I do with this skill?
 
-```
-┌─────────────┐      ┌────────────────────┐      ┌──────────────────┐
-│  CLI / AI   │─────▶│ Apps Script Web App│─────▶│ Google Forms API │
-│  curl POST  │      │  (runs as YOU)     │      │  (created/edited)│
-└─────────────┘      └────────────────────┘      └──────────────────┘
-```
+You can simply ask me:
 
-## Setup
+### 📝 Create a New Survey
+* "Create a survey for customer feedback on our new website."
+* "Make a form for employee satisfaction with ratings from 1-10."
+* "I need a registration form for the upcoming workshop with name, email, and dietary preferences."
 
-① Go to [script.new](https://script.new)
-② Delete default code → Paste `scripts/appscript_code.gs`
-③ Save
-④ Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone
-⑤ Copy the Web App URL
+### 🔍 View Existing Forms
+* "Show me a list of all my Google Forms."
+* "How many responses has my 'Customer Feedback' form received?"
+* "Who filled out the 'Holiday Party RSVP' form?"
 
-## Usage
+### ✏️ Edit a Form
+* "Add a question to my 'Feedback' survey asking for suggestions."
+* "Change the title of Form ID 123... to '2026 Annual Review'."
 
-```bash
-GFORMS="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
+### 📊 Export Responses
+* "Download the responses from the 'Employee Satisfaction' form."
+* "Link the responses from 'Workshop RSVP' to a Google Sheet so I can analyze them."
 
-# Create a form
-curl -L "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"create","title":"My Form","questions":[]}'
+---
 
-# List forms
-curl "$GFORMS" -d '{"action":"list"}'
+## ⚙️ Initial Setup (Do this once)
 
-# Get form
-curl "$GFORMS" -d '{"action":"get","formId":"FORM_ID"}'
+*To give me permission to create forms on your behalf, I need you to authorize a "Script" to act as you. This takes about 2 minutes.*
 
-# Add questions
-curl -L "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"addQuestions","formId":"FORM_ID","questions":[
-    {"type":"rating","title":"Rate 1-10","required":true,"scaleMax":10}
-  ]}'
+1.  **Open Google Scripts**: Go to [script.new](https://script.new) (this opens a blank script in your Google account).
+2.  **Paste the Code**: 
+    *   Delete the few lines of text currently there.
+    *   Copy the code I provide (usually located in the `scripts/appscript_code.gs` file of this skill) and paste it there.
+3.  **Save**: Click the floppy disk icon (💾) or press `Ctrl+S`. Name it "GL Forms Automation" or similar.
+4.  **Deploy**: 
+    *   Click the blue **"Deploy"** button (top right).
+    *   Select **"New deployment"**.
+    *   Click the **Gear icon ⚙️** next to "Select type" and choose **"Web app"**.
+    *   **Description**: "Forms Tool"
+    *   **Execute as**: `Me` (raymond.christopher@gdplabs.id)
+    *   **Who has access**: ✅ **Anyone** (This is important so I can talk to the script).
+5.  **Authorize**: 
+    *   Click **"Deploy"**.
+    *   Google will ask for permission. Click **"Review permissions"**, choose your account, and if it says "Google hasn't verified this app", click **"Advanced"** -> **"Go to (unsafe)"**. This is safe—it's *your* script.
+6.  **Copy the URL**: You will see a "Web App URL" ending in `/exec`. **Copy this link** and send it back to me.
+    *   *Example:* `https://script.google.com/macros/s/...A.../exec`
 
-# Get responses
-curl "$GFORMS" -d '{"action":"responses","formId":"FORM_ID"}'
+Once you give me that link, I can create and manage forms for you instantly!
 
-# Convert dropdowns to Rating (Stars)
-curl -L "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"convertListToRating","formId":"FORM_ID","titleIncludes":["VASCULARITY","PIGMENTATION"],"ratingIcon":"STAR"}'
-```
+---
 
-## Question Types
+## 📋 Supported Question Types
 
-| Type | Fields | Notes |
-|------|--------|-------|
-| `text` | `title`, `required` | Short answer |
-| `paragraph` | `title`, `required` | Long answer |
-| `multiple_choice` | `title`, `required`, `options[]` | Radio buttons |
-| `checkbox` | `title`, `required`, `options[]` | Multi-select |
-| `dropdown` | `title`, `required`, `options[]` | Dropdown list |
-| `rating` | `title`, `required`, `scaleMax` | 1-N Stars/Hearts/Thumbs |
-| `date` | `title`, `required` | Date picker |
-| `time` | `title`, `required` | Time picker |
-| `grid` | `title`, `required`, `rows[]`, `cols[]` | Grid table |
-| `email` | `title`, `required` | Email validation |
+When we create forms, I can handle all these question types:
 
-## Forms Created
+*   **Short Answer / Paragraph**: For open text feedback.
+*   **Multiple Choice**: For selecting one option (like "Yes/No").
+*   **Checkboxes**: For selecting multiple options (like "Which topics interest you?").
+*   **Dropdown**: For a compact list of options.
+*   **Rating (Stars/Hearts/Thumbs)**: For scoring satisfaction (1-5 or 1-10).
+*   **Date / Time**: For scheduling.
+*   **Grid**: For complex matrices (e.g., rate 5 different aspects on a scale of 1-5).
 
-| Form | Form ID | Status |
-|------|---------|--------|
-| Vancouver Scar Scale (VSS) | 170rIEqaiHG9pb1PmZYFcBFH0pZZYHbj4WqRjIxT3PkU | Multiple choice (created) |
-| POSAS Observer Assessment | 1f9TkbEl8iULUJqriLUVUp8AAJOombjXs2mewzfy2Xdo | Rating (Stars 1-10, converted) |
-| SCAR-Q Questionnaire | (pending) | Not yet created |
+## 📍 Where is the code?
 
-## Lessons Learned & Technical Findings
-
-- **Rating vs Scale**: Do NOT use `type: "scale"` for 1-10 ratings. `ScaleItem.setLowerBound()` often fails with `TypeError` in Web App contexts.
-  - **Fix**: Use `type: "rating"` which invokes `FormApp.addRatingItem()`. It supports 1-10 levels, 3 icon styles (STAR, HEART, THUMB_UP), and works reliably in Web Apps.
-- **Deployments**: After editing code, you MUST select **"New version"** in "Manage deployments", otherwise the Web App serves old code silently.
-- **Redirects**: When curling the Web App URL, always use `-L` (follow redirects) or resolve the execution URL first to avoid `doGet not found` errors.
-
-## Local Project Structure
-Raymond manages the local definitions and script at `~/gform_automation/`.
-- `GFORM_AUTOMATION.md`: Definitions for VSS, POSAS, SCAR-Q.
-- `scripts/appscript_code.gs`: The master script to be pasted into Apps Script.
-
-## Troubleshooting
-
-| Problem | Fix |
-|--------|-----|
-| `TypeError: item.setLowerBound...` | Change `type: "scale"` to `type: "rating"` in payload. |
-| `Unknown action` | Redeploy script with "New version". |
-| "Page Not Found" | Check Deployment permissions -> "Anyone". |
-| `setLowerBound not found` | Use `rating` type with `addRatingItem()` instead of `scale` type |
-| "Page Not Found" (HTML response) | Check "Who has access: Anyone" in deployment settings |
+The local scripts and automation definitions are managed in your local folder here:
+📂 `~/gform_automation/`
