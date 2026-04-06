@@ -26,35 +26,60 @@ import os
 import sys
 from pathlib import Path
 
-HERMES_HOME = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
-TOKEN_PATH = HERMES_HOME / "google_token.json"
+# ── Self-contained Google OAuth helpers ─────────────────────────────
+# These avoid the fragile cross-skill import to productivity/google-workspace.
 
 SCOPES = [
-    "https://www.googleapis.com/auth/forms.body",
+    "https://www.googleapis.com/auth/forms",
     "https://www.googleapis.com/auth/forms.responses.readonly",
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
+TOKEN_DIR = Path.home() / ".hermes"
+TOKEN_FILE = TOKEN_DIR / "google_token.json"
+
 
 def get_credentials():
+    """Load Google API credentials from a local token file.
+
+    Uses the same token path as google-docs (~/.hermes/google_token.json)
+    so the standard setup.py in that skill provides authentication for both.
+    Additional Forms scopes are requested but Google silently grants overlap.
+    """
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
 
-    if not TOKEN_PATH.exists():
-        raise RuntimeError(f"Missing token file: {TOKEN_PATH}")
+    if not TOKEN_FILE.exists():
+        raise FileNotFoundError(
+            f"No token found at {TOKEN_FILE}.\n"
+            "Run: python3 /path/to/hermes-skills/google-docs/scripts/setup.py --client-secret /path/to/credentials.json\n"
+            "Then: python3 /path/to/hermes-skills/google-docs/scripts/setup.py --auth-url"
+        )
 
-    creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
-    if creds.expired and creds.refresh_token:
+    creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+    if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
-        TOKEN_PATH.write_text(creds.to_json())
-    if not creds.valid:
-        raise RuntimeError("Google token is invalid; re-run OAuth login")
+        TOKEN_DIR.mkdir(parents=True, exist_ok=True)
+        TOKEN_FILE.write_text(creds.to_json())
+
+    if not creds or not creds.valid:
+        raise ValueError(
+            f"Token at {TOKEN_FILE} is invalid or missing refresh token.\n"
+            "Re-run the setup to re-authenticate."
+        )
     return creds
 
 
-def handle_api_error(err):
-    print(f"Google API error: {err}", file=sys.stderr)
+def handle_api_error(error):
+    """Pretty-print an HttpError from the Google API client."""
+    from googleapiclient.errors import HttpError
+    if isinstance(error, HttpError):
+        status = error.resp.status
+        body = error._get_reason() or str(error)
+        print(f"API error {status}: {body}", file=sys.stderr)
+    else:
+        print(f"Error: {error}", file=sys.stderr)
 
 
 def build_services():
