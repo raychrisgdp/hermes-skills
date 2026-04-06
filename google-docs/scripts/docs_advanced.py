@@ -127,7 +127,7 @@ def _make_cell_fill_requests(table_start, row, col, cell_text):
 # Images
 # ===============================================================
 
-def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, height_pts=None):
+def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, height_pts=None, share_publicly=False):
     """Insert an image into the document.
     
     Args:
@@ -151,17 +151,18 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
         start_index = doc["body"]["content"][-1].get("endIndex", 1) - 1
     
     # Create inline image request
-    # The image must be publicly accessible or shared with the Docs API.
-    # We make it readable by "anyone with the link" first.
-    drive.permissions().create(
-        fileId=image_id,
-        body={"type": "anyone", "role": "reader"},
-        fields="id"
-    ).execute()
+    # Prefer uploading to Drive and using the Drive download URL.
+    # Only make the image world-readable if the caller explicitly asks for it.
+    if share_publicly:
+        drive.permissions().create(
+            fileId=image_id,
+            body={"type": "anyone", "role": "reader"},
+            fields="id"
+        ).execute()
 
     image_request = {
         "insertInlineImage": {
-            "uri": f"https://drive.google.com/uc?id={image_id}",
+            "uri": f"https://drive.google.com/thumbnail?id={image_id}&sz=w1000",
             "location": {"index": start_index},
         }
     }

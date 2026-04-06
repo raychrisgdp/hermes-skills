@@ -234,17 +234,23 @@ for url, pr in list(prs.items()):
 
                     msg = commit_data.get("message", "")
 
-                    # Match on GitHub login, email prefix, or Co-authored-by email
-                    email_prefix = user  # fallback
-                    if author_email and "@" in author_email:
-                        email_prefix = author_email.split("@")[0]
+                    # Match on GitHub login, commit author name/email, or Co-authored-by
+                    is_github_author = github_author == user
+                    is_named_in_commit = user in author_name if author_name else False
 
-                    if (github_author == user
-                            or user in author_name
-                            or author_email == user
-                            or email_prefix == author_email.split("@")[0] if "@" in author_email else False
-                            or (f"Co-authored-by:" in msg and
-                                (user in msg or author_email in msg or email_prefix in msg))):
+                    has_author_email = "@" in (author_email or "")
+                    if has_author_email:
+                        email_prefix = author_email.split("@")[0]
+                    else:
+                        email_prefix = ""
+
+                    is_author_by_email = author_email == user if author_email else False
+                    is_prefix_match = (email_prefix and author_email and email_prefix == author_email.split("@")[0]) if has_author_email else False
+
+                    co_authored = "Co-authored-by:" in msg
+                    co_authored_matches = co_authored and (user in msg or author_email in msg or email_prefix in msg)
+
+                    if (is_github_author or is_named_in_commit or is_author_by_email or is_prefix_match or co_authored_matches):
                         prs[url]["role"] = "Review & Implement"
                         print(f"  → Found contribution in: {pr['title']}")
                         break

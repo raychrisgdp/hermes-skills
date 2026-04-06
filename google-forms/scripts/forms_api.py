@@ -52,7 +52,8 @@ def get_credentials():
     if not TOKEN_FILE.exists():
         raise FileNotFoundError(
             f"No token found at {TOKEN_FILE}.\n"
-            "Run 'python3 scripts/setup.py' in the google-forms skill directory first."
+            "Run the google-docs setup (scripts/setup.py in google-docs) or\n"
+            "use the Web App path instead (see SKILL.md for configuration)."
         )
 
     creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)

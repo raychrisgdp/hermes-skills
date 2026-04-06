@@ -15,15 +15,16 @@ var SHARED_SECRET = ""; // Set this to a random secret string before deploying
 
 function doPost(e) {
   try {
+    if (!SHARED_SECRET) {
+      // Fail closed: never process requests without an auth secret configured.
+      return respond({ error: 'Server not configured: SHARED_SECRET is empty. Set it in the script and redeploy.' });
+    }
+
     var payload = JSON.parse(e.postData.contents);
 
-    // Auth check — skip when secret is empty (backwards compatible for testing).
-    // Once SHARED_SECRET is set, all requests must include "secret".
-    if (SHARED_SECRET) {
-      var reqSecret = payload.secret || "";
-      if (reqSecret !== SHARED_SECRET) {
-        return respond({ error: 'Unauthorized: invalid or missing secret' });
-      }
+    var reqSecret = payload.secret || "";
+    if (reqSecret !== SHARED_SECRET) {
+      return respond({ error: 'Unauthorized: invalid or missing secret' });
     }
 
     var action = payload.action;

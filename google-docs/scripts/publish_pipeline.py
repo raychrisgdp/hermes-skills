@@ -30,7 +30,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 # ── Configuration ────────────────────────────────────────────────
-TOKEN_PATH=os.path.join(os.path.expanduser("~"), ".hermes", "google_tokens", "docs_token.json")
+TOKEN_PATH=os.path.join(os.path.expanduser("~"), ".hermes", "google_token.json")
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive",
@@ -188,22 +188,23 @@ def main():
     print("\n📤 Phase 1: Uploading/Updating Documents...")
 
     link_map = {}  # filename or rel_path -> google_doc_url
-    existing_titles = set()
 
-    # Pre-scan to collect all titles (including existing Drive docs).
-    # This is best-effort; we mainly guard against intra-run collisions.
+    # Compute each file's final title once.  Pre-scanning the directory
+    # to build a set of candidate titles prevents intra-batch collisions
+    # without double-renaming files in the upload pass.
+    doc_entries = []  # [(filepath, rel_path, title), ...]
+    seen_titles = set()
+
     for filepath in md_files:
         rel_path = os.path.relpath(filepath, md_dir)
         basename = os.path.basename(filepath)
-        title = make_unique_title(rel_path, basename, existing_titles)
-        existing_titles.add(title)
+        title = make_unique_title(rel_path, basename, seen_titles)
+        seen_titles.add(title)
+        doc_entries.append((filepath, rel_path, title))
 
-    for filepath in md_files:
-        rel_path = os.path.relpath(filepath, md_dir)
+    for filepath, rel_path, title in doc_entries:
         with open(filepath, encoding="utf-8") as f:
             content = f.read()
-
-        title = make_unique_title(rel_path, os.path.basename(filepath), existing_titles)
 
         doc_id = get_or_create_doc(drive_s, title, content)
 
