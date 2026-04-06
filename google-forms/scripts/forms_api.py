@@ -22,13 +22,39 @@ Question JSON schema (see SKILL.md for full table):
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
-# Reuse the google-workspace credential helpers
-SKILL_ROOT = Path(__file__).resolve().parent.parent.parent / "productivity" / "google-workspace" / "scripts"
-sys.path.insert(0, str(SKILL_ROOT))
-from google_api import get_credentials, handle_api_error  # noqa: E402
+HERMES_HOME = Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
+TOKEN_PATH = HERMES_HOME / "google_token.json"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/forms.body",
+    "https://www.googleapis.com/auth/forms.responses.readonly",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/spreadsheets",
+]
+
+
+def get_credentials():
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+
+    if not TOKEN_PATH.exists():
+        raise RuntimeError(f"Missing token file: {TOKEN_PATH}")
+
+    creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        TOKEN_PATH.write_text(creds.to_json())
+    if not creds.valid:
+        raise RuntimeError("Google token is invalid; re-run OAuth login")
+    return creds
+
+
+def handle_api_error(err):
+    print(f"Google API error: {err}", file=sys.stderr)
 
 
 def build_services():
@@ -48,18 +74,23 @@ def create_form(args):
             "title": args.title,
         }
     }
-    if args.description:
-        body["info"]["description"] = args.description
 
-    # Collect question creation requests
+    result = forms_s.forms().create(body=body).execute()
+    form_id = result["formId"]
+
     requests = []
+    if args.description:
+        requests.append({
+            "updateFormInfo": {
+                "info": {"description": args.description},
+                "updateMask": "description",
+            }
+        })
+
     for q_json in (args.question or []):
         q = json.loads(q_json)
         req = build_question_request(q)
         requests.append(req)
-
-    result = forms_s.forms().create(body=body).execute()
-    form_id = result["formId"]
 
     if requests:
         batch_body = {"requests": requests}
@@ -75,7 +106,7 @@ def build_question_request(q):
     title = q["title"]
     required = q.get("required", False)
 
-    question = {"title": title, "required": required}
+    question = {"required": required}
 
     if qtype == "text":
         question["textQuestion"] = {"paragraph": False}
@@ -124,7 +155,7 @@ def build_question_request(q):
     else:
         raise ValueError(f"Unknown question type: {qtype}")
 
-    return {"createItem": {"item": {"questionItem": {"question": question}}, "location": {"index": 0}}}
+    return {"createItem": {"item": {"title": title, "questionItem": {"question": question}}, "location": {"index": 0}}}
 
 
 def get_form_metadata(forms_s, form_id):
