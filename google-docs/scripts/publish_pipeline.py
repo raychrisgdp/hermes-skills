@@ -7,26 +7,28 @@ as native Google Docs (preserving tables/formatting instantly), and fixes
 internal cross-links (e.g. linking `design.md` to the newly created
 'Design' Google Doc).
 
+Document ID persistence:
+A `.doc_ids.json` file is stored in the markdown directory mapping each
+relative file path to its Google Doc ID.  This eliminates title-based
+collisions entirely — on re-runs the script looks up the stored ID,
+verifies it still exists in Drive, and reuses it.
+
 Usage:
     python3 publish_pipeline.py /path/to/markdown/folder
-
-Fixes applied:
-- New documents are now actually created (content is passed to Drive Upload).
-- Documents are identified by a path-derived title to avoid collisions.
-- Drive API re-upload is used for updates (preserves formatting) instead of
-  Docs API insertText which lost all Markdown styling.
 """
 
 import sys
 import os
 import io
 import re
+import json
 import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 
 # ── Configuration ────────────────────────────────────────────────
@@ -37,6 +39,7 @@ SCOPES = [
 ]
 
 BASE = "https://docs.google.com/document/d/"
+ID_MAP_FILENAME = ".doc_ids.json"
 
 def get_services():
     creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
@@ -53,8 +56,37 @@ def find_md_files(directory):
     for root, _, filenames in os.walk(directory):
         for f in filenames:
             if f.endswith(".md"):
-                files.append(os.path.join(root, f))
+                # Skip the ID map file itself
+                if f != ID_MAP_FILENAME:
+                    files.append(os.path.join(root, f))
     return sorted(files)
+
+def load_id_map(md_dir):
+    """Load the persisted path-to-doc-id mapping."""
+    map_path = os.path.join(md_dir, ID_MAP_FILENAME)
+    if os.path.exists(map_path):
+        with open(map_path, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_id_map(md_dir, id_map):
+    """Persist the path-to-doc-id mapping."""
+    map_path = os.path.join(md_dir, ID_MAP_FILENAME)
+    with open(map_path, "w") as f:
+        json.dump(id_map, f, indent=2)
+
+def verify_doc_exists(drive_s, doc_id, title):
+    """Check that a doc_id still exists in Drive. Returns (exists, found_title)."""
+    try:
+        result = drive_s.files().get(
+            fileId=doc_id,
+            fields="id, name, trashed"
+        ).execute()
+        if result.get("trashed"):
+            return False, None
+        return True, result.get("name", title)
+    except HttpError:
+        return False, None
 
 def make_unique_title(rel_path, basename, existing_titles):
     """Generate a title that avoids collisions.
@@ -82,23 +114,20 @@ def make_unique_title(rel_path, basename, existing_titles):
         suffix += 1
     return candidate
 
-def get_or_create_doc(drive_s, title, md_content):
-    """Find existing doc by title, or create a new one via Drive Import.
+def get_or_create_doc(drive_s, title, md_content, doc_id=None):
+    """Find or create a doc.  If doc_id is provided and verified, use it directly.
 
     Always expects md_content so new documents are actually created.
     """
 
-    # 1. Try to find existing
-    results = drive_s.files().list(
-        q=f"name='{title}' and mimeType='application/vnd.google-apps.document' and trashed=false",
-        fields="files(id, name, modifiedTime)"
-    ).execute()
-
-    if results.get("files"):
-        files = sorted(results["files"], key=lambda x: x.get("modifiedTime", ""), reverse=True)
-        file_id = files[0]["id"]
-        print(f"  ♻️  Found existing doc: {title} (ID: {file_id})")
-        return file_id
+    # 1. Use stored doc_id if available and still valid
+    if doc_id:
+        exists, _ = verify_doc_exists(drive_s, doc_id, title)
+        if exists:
+            print(f"  ♻️  Using stored doc ID: {doc_id}")
+            return doc_id
+        else:
+            print(f"  ⚠️  Stored doc ID {doc_id} no longer exists in Drive, creating new.")
 
     # 2. Create new via Drive Import — preserves Markdown formatting.
     if not md_content:
@@ -183,7 +212,10 @@ def main():
     md_files = find_md_files(md_dir)
     print(f"\n📂 Scanned {len(md_files)} Markdown files.")
 
-    # 2. Build titles and create/update docs in a single pass.
+    # 2. Load persisted ID map
+    id_map = load_id_map(md_dir)
+
+    # 3. Build titles and create/update docs in a single pass.
     #    Track titles to avoid collisions.
     print("\n📤 Phase 1: Uploading/Updating Documents...")
 
@@ -206,14 +238,22 @@ def main():
         with open(filepath, encoding="utf-8") as f:
             content = f.read()
 
-        doc_id = get_or_create_doc(drive_s, title, content)
+        # Use stored doc_id if available
+        stored_id = id_map.get(rel_path)
+        doc_id = get_or_create_doc(drive_s, title, content, doc_id=stored_id)
 
         if doc_id:
             url = f"{BASE}{doc_id}/edit"
             link_map[rel_path] = url
             link_map[os.path.basename(filepath)] = url
+            # Update the persisted mapping
+            id_map[rel_path] = doc_id
 
-    # 3. Second Pass: Rewrite inter-doc links and re-upload with corrected URLs.
+    # Save updated ID map
+    save_id_map(md_dir, id_map)
+    print(f"\n  💾 Saved doc ID map ({len(id_map)} entries) to {ID_MAP_FILENAME}")
+
+    # 4. Second Pass: Rewrite inter-doc links and re-upload with corrected URLs.
     #    This is only needed when files contain links to each other.
     print("\n🔗 Phase 2: Fixing Cross-Links and Finalizing...")
 

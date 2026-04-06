@@ -36,15 +36,16 @@ SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
-TOKEN_DIR = Path.home() / ".hermes" / "google_tokens"
-TOKEN_FILE = TOKEN_DIR / "forms_token.json"
+TOKEN_DIR = Path.home() / ".hermes"
+TOKEN_FILE = TOKEN_DIR / "google_token.json"
 
 
 def get_credentials():
     """Load Google API credentials from a local token file.
 
-    If no valid credentials exist, raise a clear error telling the user
-    what to do.  The caller should catch this and print actionable guidance.
+    Uses the same token path as google-docs (~/.hermes/google_token.json)
+    so the standard setup.py in that skill provides authentication for both.
+    Additional Forms scopes are requested but Google silently grants overlap.
     """
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
@@ -52,8 +53,8 @@ def get_credentials():
     if not TOKEN_FILE.exists():
         raise FileNotFoundError(
             f"No token found at {TOKEN_FILE}.\n"
-            "Run the google-docs setup (scripts/setup.py in google-docs) or\n"
-            "use the Web App path instead (see SKILL.md for configuration)."
+            "Run: python3 /path/to/hermes-skills/google-docs/scripts/setup.py --client-secret /path/to/credentials.json\n"
+            "Then: python3 /path/to/hermes-skills/google-docs/scripts/setup.py --auth-url"
         )
 
     creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
