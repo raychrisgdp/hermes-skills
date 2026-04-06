@@ -22,13 +22,62 @@ Question JSON schema (see SKILL.md for full table):
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
-# Reuse the google-workspace credential helpers
-SKILL_ROOT = Path(__file__).resolve().parent.parent.parent / "productivity" / "google-workspace" / "scripts"
-sys.path.insert(0, str(SKILL_ROOT))
-from google_api import get_credentials, handle_api_error  # noqa: E402
+# ── Self-contained Google OAuth helpers ─────────────────────────────
+# These avoid the fragile cross-skill import to productivity/google-workspace.
+
+SCOPES = [
+    "https://www.googleapis.com/auth/forms",
+    "https://www.googleapis.com/auth/forms.responses.readonly",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/spreadsheets",
+]
+
+TOKEN_DIR = Path.home() / ".hermes" / "google_tokens"
+TOKEN_FILE = TOKEN_DIR / "forms_token.json"
+
+
+def get_credentials():
+    """Load Google API credentials from a local token file.
+
+    If no valid credentials exist, raise a clear error telling the user
+    what to do.  The caller should catch this and print actionable guidance.
+    """
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+
+    if not TOKEN_FILE.exists():
+        raise FileNotFoundError(
+            f"No token found at {TOKEN_FILE}.\n"
+            "Run 'python3 scripts/setup.py' in the google-forms skill directory first."
+        )
+
+    creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+        TOKEN_DIR.mkdir(parents=True, exist_ok=True)
+        TOKEN_FILE.write_text(creds.to_json())
+
+    if not creds or not creds.valid:
+        raise ValueError(
+            f"Token at {TOKEN_FILE} is invalid or missing refresh token.\n"
+            "Re-run the setup to re-authenticate."
+        )
+    return creds
+
+
+def handle_api_error(error):
+    """Pretty-print an HttpError from the Google API client."""
+    from googleapiclient.errors import HttpError
+    if isinstance(error, HttpError):
+        status = error.resp.status
+        body = error._get_reason() or str(error)
+        print(f"API error {status}: {body}", file=sys.stderr)
+    else:
+        print(f"Error: {error}", file=sys.stderr)
 
 
 def build_services():

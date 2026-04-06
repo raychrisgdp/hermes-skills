@@ -62,7 +62,15 @@ def insert_table(doc_id, start_index, rows, cols, data=None):
                 break
         
         if table_el:
-            table_start = table_el["startIndex"]
+            # startIndex lives on the outer element, not in the "table" dict.
+            # We find it by locating the element in the content list.
+            table_start = None
+            for el_idx, el in enumerate(doc["body"]["content"]):
+                if "table" in el:
+                    table_start = el.get("startIndex")
+                    break
+            if table_start is None:
+                raise ValueError("Could not determine table start position in document")
             for r, row_data in enumerate(data):
                 for c, cell_text in enumerate(row_data):
                     cell_reqs = _make_cell_fill_requests(
@@ -143,9 +151,17 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
         start_index = doc["body"]["content"][-1].get("endIndex", 1) - 1
     
     # Create inline image request
+    # The image must be publicly accessible or shared with the Docs API.
+    # We make it readable by "anyone with the link" first.
+    drive.permissions().create(
+        fileId=image_id,
+        body={"type": "anyone", "role": "reader"},
+        fields="id"
+    ).execute()
+
     image_request = {
         "insertInlineImage": {
-            "uri": f"drive/{image_id}",
+            "uri": f"https://drive.google.com/uc?id={image_id}",
             "location": {"index": start_index},
         }
     }

@@ -1,15 +1,31 @@
 /**
  * Google Forms API via Apps Script
  * Project Name: GForm Automation
- * 
+ *
  * Deploy as Web App:
  *   Execute as: Me
  *   Who has access: Anyone
+ *
+ * SECURITY: This web-app uses a shared secret for authentication.
+ * The secret is passed in each request as payload["secret"].
+ * Set SHARED_SECRET to a random value before deploying.
  */
+
+var SHARED_SECRET = ""; // Set this to a random secret string before deploying
 
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
+
+    // Auth check — skip when secret is empty (backwards compatible for testing).
+    // Once SHARED_SECRET is set, all requests must include "secret".
+    if (SHARED_SECRET) {
+      var reqSecret = payload.secret || "";
+      if (reqSecret !== SHARED_SECRET) {
+        return respond({ error: 'Unauthorized: invalid or missing secret' });
+      }
+    }
+
     var action = payload.action;
     if (!action) return respond({ error: 'Missing "action" field' });
 

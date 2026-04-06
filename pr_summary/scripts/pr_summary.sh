@@ -88,7 +88,7 @@ echo "✅ Setup OK."
 
 # ─── Date Calculation ──────────────────────────────────────────
 # Compatible with GNU and BSD date
-CUTOFF_DATE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d 2>/dev/null || date -v"${LOOKBACK_DAYS}d" +%Y-%m-%d 2>/dev/null)
+CUTOFF_DATE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d 2>/dev/null || date -v"-${LOOKBACK_DAYS}d" +%Y-%m-%d 2>/dev/null)
 echo "📅 Period: Last $LOOKBACK_DAYS days (since $CUTOFF_DATE)"
 
 # ─── Repo Filter ───────────────────────────────────────────────
@@ -204,14 +204,16 @@ process_edges(reviewed, "Review")
 process_edges(commented, "Review")
 
 # Check commits for "Review & Implement"
-print("🔍 Checking for 'Co-authored-by' commits...")
+# A reviewed PR counts as "Review & Implement" if the user appears as a commit
+# author, co-author, or committer on that PR's branches.
+print("🔍 Checking for commit authorship (Review & Implement)...")
 for url, pr in list(prs.items()):
     if pr.get("role") == "Review":
         parts = url.split("/pull/")
         if len(parts) < 2: continue
         num = parts[1]
         repo = pr.get("repo")
-        
+
         try:
             result = subprocess.run(
                 ["gh", "api", f"repos/{repo}/pulls/{num}/commits"],
@@ -220,11 +222,29 @@ for url, pr in list(prs.items()):
             if result.returncode == 0:
                 commits = json.loads(result.stdout)
                 for commit in commits:
-                    msg = commit.get("commit", {}).get("message", "")
-                    # Check for user in Co-authored-by or directly as author/committer
-                    # Standard format: Co-authored-by: Name <email>
-                    # We search for user handle in message if it exists there
-                    if user in msg and "Co-authored-by" in msg:
+                    commit_data = commit.get("commit", {})
+
+                    # Check author name and email
+                    author_name = commit_data.get("author", {}).get("name", "")
+                    author_email = commit_data.get("author", {}).get("email", "")
+                    committer_email = commit_data.get("committer", {}).get("email", "")
+
+                    # Also check GitHub-level author (more reliable for web commits)
+                    github_author = commit.get("author", {}).get("login", "")
+
+                    msg = commit_data.get("message", "")
+
+                    # Match on GitHub login, email prefix, or Co-authored-by email
+                    email_prefix = user  # fallback
+                    if author_email and "@" in author_email:
+                        email_prefix = author_email.split("@")[0]
+
+                    if (github_author == user
+                            or user in author_name
+                            or author_email == user
+                            or email_prefix == author_email.split("@")[0] if "@" in author_email else False
+                            or (f"Co-authored-by:" in msg and
+                                (user in msg or author_email in msg or email_prefix in msg))):
                         prs[url]["role"] = "Review & Implement"
                         print(f"  → Found contribution in: {pr['title']}")
                         break
