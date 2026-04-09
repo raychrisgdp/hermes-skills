@@ -15,6 +15,10 @@
 - Convert fenced code blocks to 4-space indented blocks before import.
 - That makes Google Docs preserve them as monospace paragraphs more reliably than raw fences.
 
+## Mermaid stripping rule
+- If you extract Mermaid blocks, make sure the Drive import uses the stripped Markdown buffer, not the original source string.
+- A common mistake is writing `content_no_mermaid` and then importing `content` by accident.
+
 ## Tables and headings
 - If a publish path needs element-level control, re-read the doc after import and then style against real indices.
 - Do not assume Markdown positions survive the import unchanged.

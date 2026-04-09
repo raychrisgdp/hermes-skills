@@ -12,6 +12,12 @@
 5. Render each Mermaid block locally to PNG.
 6. Read the doc structure once, locate the anchor paragraphs, and insert the images after those anchors.
 7. Re-export the doc and confirm the images sit in the right place.
+8. Do the import and insert steps in one foreground script or notebook cell so you can see success/failure immediately.
+
+## Common mistakes
+- Importing the original Markdown after already producing `content_no_mermaid`.
+- Using `start_index=1` as a generic anchor instead of the end index of the real heading paragraph.
+- Hiding the doc write behind `nohup` or a background shell process, which makes API failures invisible.
 
 ## Recommended command
 - `npx --yes @mermaid-js/mermaid-cli@11.4.3 -i input.mmd -o output.png -p /tmp/pp.json`

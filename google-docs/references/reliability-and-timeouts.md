@@ -18,6 +18,7 @@
 - Retry 429/500/timeouts with exponential backoff.
 - Do not hammer the API with the same request in a tight loop.
 - If a single insertion keeps failing, wait and try again with the same input.
+- Avoid `nohup` for the actual write path; use a foreground run so the agent can stop on the first failing step instead of discovering it later.
 
 ## Large-doc fallback
 - If a full raw export times out, do not keep asking for `--raw`.

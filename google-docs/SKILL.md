@@ -13,7 +13,7 @@ Use this skill for Google Docs creation, publishing, link rewriting, review comm
 - Create new docs
 - Publish Markdown folders into native Google Docs
 - Rewrite internal links to live Google Docs URLs
-- Render Mermaid locally and insert it as inline images, using landscape page sections when a diagram is wide
+- Render Mermaid locally and insert it as inline images, using landscape page sections when a diagram is wide and resizing images before upload
 - Inspect docs after publishing to verify the result
 - Manage review comments and reply threads
 
