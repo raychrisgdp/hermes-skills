@@ -53,9 +53,13 @@ def get_credentials():
 
 
 def build_service(api, version):
-    """Build a Google API service with retry-wrapped credentials."""
+    """Build a Google API service with a longer HTTP timeout."""
+    import httplib2
+    from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient.discovery import build
-    return build(api, version, credentials=get_credentials())
+
+    http = AuthorizedHttp(get_credentials(), http=httplib2.Http(timeout=120))
+    return build(api, version, http=http, cache_discovery=False)
 
 
 # ===========================================================
@@ -79,7 +83,7 @@ def _apply_heading_styles(doc_id):
        index to lowest so earlier indices don't shift.
     """
     docs = build_service("docs", "v1")
-    doc = docs.documents().get(documentId=doc_id).execute()
+    doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
     content = doc.get("body", {}).get("content", [])
 
     # ── Step 1: apply paragraph styles ───────────────────────
@@ -110,7 +114,7 @@ def _apply_heading_styles(doc_id):
 
     if style_reqs:
         docs.documents().batchUpdate(documentId=doc_id,
-                                      body={"requests": style_reqs}).execute()
+                                      body={"requests": style_reqs}).execute(num_retries=5)
 
     # ── Step 2: delete heading prefixes (reverse order) ──
     # Each delete runs individually to avoid index collisions, from
@@ -123,7 +127,7 @@ def _apply_heading_styles(doc_id):
                               "endIndex": start_pos + plen}
                 }
             }]
-        }).execute()
+        }).execute(num_retries=5)
 
 
 def _heading_level_and_len(text: str):
@@ -142,7 +146,7 @@ def _apply_bullets(doc_id):
     Processes bullets in **reverse index order** (highest → lowest).
     """
     docs = build_service("docs", "v1")
-    doc = docs.documents().get(documentId=doc_id).execute()
+    doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
     content = doc.get("body", {}).get("content", [])
 
     bullets = []  # (startIndex, endIndex-1, prefix_len)
@@ -179,7 +183,7 @@ def _apply_bullets(doc_id):
 
     if requests:
         docs.documents().batchUpdate(documentId=doc_id,
-                                      body={"requests": requests}).execute()
+                                      body={"requests": requests}).execute(num_retries=5)
 
 
 def _populate_document(doc_id, md_text, clear_first=True):
@@ -202,7 +206,7 @@ def _populate_document(doc_id, md_text, clear_first=True):
         "requests": [{
             "insertText": {"location": {"index": 1}, "text": md_text}
         }]
-    }).execute()
+    }).execute(num_retries=5)
 
     _apply_heading_styles(doc_id)
     _apply_inline_styles(doc_id)
@@ -226,7 +230,7 @@ def _apply_inline_styles(doc_id):
 
     for _pass in range(200):
         found = False
-        doc = docs.documents().get(documentId=doc_id).execute()
+        doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
 
         for el in doc.get("body", {}).get("content", []):
             if "paragraph" not in el:
@@ -325,12 +329,12 @@ def _apply_inline_styles(doc_id):
                             "requests": [{"deleteContentRange": {
                                 "range": {"startIndex": ds, "endIndex": de}
                             }}]
-                        }).execute()
+                        }).execute(num_retries=5)
 
             # Re-read to get correct positions after deletes, then apply styles
             if requests:
                 # Recalculate style ranges based on current doc structure
-                doc2 = docs.documents().get(documentId=doc_id).execute()
+                doc2 = docs.documents().get(documentId=doc_id).execute(num_retries=5)
                 for el2 in doc2.get("body", {}).get("content", []):
                     if "paragraph" not in el2:
                         continue
@@ -383,7 +387,7 @@ def _apply_inline_styles(doc_id):
                                 })
                     if style_reqs:
                         docs.documents().batchUpdate(documentId=doc_id,
-                                                      body={"requests": style_reqs}).execute()
+                                                      body={"requests": style_reqs}).execute(num_retries=5)
                     break  # only process this paragraph
 
             break  # re-read doc after modifying one paragraph
@@ -440,7 +444,7 @@ def _parse_inline_md(text: str):
 def _clear_document(doc_id):
     """Delete all paragraph content in a single batchUpdate call (reverse order)."""
     docs = build_service("docs", "v1")
-    doc = docs.documents().get(documentId=doc_id).execute()
+    doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
     content = doc.get("body", {}).get("content", [])
     if len(content) <= 1:
         return
@@ -459,7 +463,7 @@ def _clear_document(doc_id):
     if del_reqs:
         docs.documents().batchUpdate(documentId=doc_id, body={
             "requests": del_reqs
-        }).execute()
+        }).execute(num_retries=5)
 
 
 # ===========================================================
@@ -574,13 +578,16 @@ def docs_list(args):
         q=q, pageSize=args.max,
         fields="files(id, name, modifiedTime, webViewLink)",
         orderBy="modifiedTime desc"
-    ).execute()
+    ).execute(num_retries=5)
     print(json.dumps(results.get("files", []), indent=2))
 
 
 def docs_get(args):
     docs = build_service("docs", "v1")
-    doc = docs.documents().get(documentId=args.doc_id).execute()
+    get_kwargs = {"documentId": args.doc_id}
+    if getattr(args, "fields", None):
+        get_kwargs["fields"] = args.fields
+    doc = docs.documents().get(**get_kwargs).execute(num_retries=5)
 
     if args.raw:
         print(json.dumps(doc, indent=2))
@@ -609,7 +616,7 @@ def docs_get(args):
 
 def docs_create(args):
     docs = build_service("docs", "v1")
-    doc = docs.documents().create(body={"title": args.title}).execute()
+    doc = docs.documents().create(body={"title": args.title}).execute(num_retries=5)
     doc_id = doc["documentId"]
     url = f"https://docs.google.com/document/d/{doc_id}/edit"
 
@@ -647,7 +654,7 @@ def docs_append(args):
         print(f"File not found: {args.md}", file=sys.stderr)
         sys.exit(1)
     docs = build_service("docs", "v1")
-    doc = docs.documents().get(documentId=args.doc_id).execute()
+    doc = docs.documents().get(documentId=args.doc_id).execute(num_retries=5)
     content = doc.get("body", {}).get("content", [])
     insert_index = 1
     if content:
@@ -658,7 +665,7 @@ def docs_append(args):
         "requests": [{
             "insertText": {"location": {"index": insert_index}, "text": md_text}
         }]
-    }).execute()
+    }).execute(num_retries=5)
     _apply_heading_styles(args.doc_id)
     _apply_bullets(args.doc_id)
     print(json.dumps({"status": "appended", "documentId": args.doc_id}, indent=2))
@@ -674,7 +681,7 @@ def docs_replace(args):
                 "replaceText": args.with_text,
             }
         }]}
-    ).execute()
+    ).execute(num_retries=5)
     occ = result["replies"][0].get("replaceAllText", {}).get("occurrencesChanged", 0)
     print(json.dumps({
         "status": "replaced",
@@ -687,7 +694,7 @@ def docs_export(args):
     drive = build_service("drive", "v3")
     mime_map = {"md": "text/markdown", "html": "text/html", "txt": "text/plain"}
     mime = mime_map.get(args.format or "md", "text/markdown")
-    result = drive.files().export(fileId=args.doc_id, mimeType=mime).execute()
+    result = drive.files().export(fileId=args.doc_id, mimeType=mime).execute(num_retries=5)
     content = result.decode("utf-8") if isinstance(result, bytes) else str(result)
     print(content)
 
@@ -709,6 +716,7 @@ def main():
     p.add_argument("doc_id")
     p.add_argument("--md", action="store_true", help="Output as Markdown")
     p.add_argument("--raw", action="store_true", help="Raw JSON from API")
+    p.add_argument("--fields", help="Docs API fields selector for narrower reads")
     p.set_defaults(func=docs_get)
 
     p = sub.add_parser("create")

@@ -27,8 +27,12 @@ def get_credentials():
 
 
 def build_service(api, version):
+    import httplib2
+    from google_auth_httplib2 import AuthorizedHttp
     from googleapiclient.discovery import build
-    return build(api, version, credentials=get_credentials())
+
+    http = AuthorizedHttp(get_credentials(), http=httplib2.Http(timeout=120))
+    return build(api, version, http=http, cache_discovery=False)
 
 # ===============================================================
 # Tables
@@ -49,12 +53,12 @@ def insert_table(doc_id, start_index, rows, cols, data=None):
         }
     }]
     
-    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute(num_retries=5)
     
     # Fill cells if data provided
     if data:
         # Re-read doc to get table position
-        doc = docs.documents().get(documentId=doc_id).execute()
+        doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
         table_el = None
         for el in doc["body"]["content"]:
             if "table" in el:
@@ -80,7 +84,7 @@ def insert_table(doc_id, start_index, rows, cols, data=None):
                         docs.documents().batchUpdate(
                             documentId=doc_id,
                             body={"requests": cell_reqs}
-                        ).execute()
+                        ).execute(num_retries=5)
     
     return True
 
@@ -147,7 +151,7 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
     
     # Get insert position (end of doc if not specified)
     if start_index is None:
-        doc = docs.documents().get(documentId=doc_id).execute()
+        doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
         start_index = doc["body"]["content"][-1].get("endIndex", 1) - 1
     
     # Create inline image request
@@ -158,7 +162,7 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
             fileId=image_id,
             body={"type": "anyone", "role": "reader"},
             fields="id"
-        ).execute()
+        ).execute(num_retries=5)
 
     image_request = {
         "insertInlineImage": {
@@ -174,7 +178,7 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
     
     docs.documents().batchUpdate(documentId=doc_id, body={
         "requests": [image_request]
-    }).execute()
+    }).execute(num_retries=5)
     return True
 
 
@@ -196,13 +200,14 @@ def _upload_image_to_drive(drive_service, image_path_or_url):
         filename = os.path.basename(image_path_or_url)
     
     file_metadata = {"name": filename}
-    media = MediaIoBaseUpload(image_data, mimetype="image/jpeg", resumable=True)
+    mimetype = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+    media = MediaIoBaseUpload(image_data, mimetype=mimetype, resumable=True)
     
     result = drive_service.files().create(
         body=file_metadata,
         media_body=media,
         fields="id"
-    ).execute()
+    ).execute(num_retries=5)
     
     return result["id"]
 
@@ -223,7 +228,7 @@ def replace_text(doc_id, find_text, replace_text, match_case=True):
                 "replaceText": replace_text,
             }
         }]}
-    ).execute()
+    ).execute(num_retries=5)
     
     occ = result["replies"][0].get("replaceAllText", {}).get("occurrencesChanged", 0)
     return occ
@@ -250,7 +255,7 @@ def insert_text_at(doc_id, index, text, style=None):
             }
         })
     
-    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute(num_retries=5)
 
 
 def append_paragraph(doc_id, text, heading=None, bullet=False):
@@ -258,7 +263,7 @@ def append_paragraph(doc_id, text, heading=None, bullet=False):
     docs = build_service("docs", "v1")
     
     # Find insert position (before last newline of last element)
-    doc = docs.documents().get(documentId=doc_id).execute()
+    doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
     content = doc["body"]["content"]
     insert_index = content[-1].get("endIndex", 1) - 1
     
@@ -291,4 +296,4 @@ def append_paragraph(doc_id, text, heading=None, bullet=False):
             }
         })
     
-    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
+    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute(num_retries=5)

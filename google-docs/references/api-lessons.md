@@ -8,6 +8,7 @@ This file is now an index so the skill stays split into small focused documents.
 - `references/markdown-pipeline.md` — import/update behavior and code blocks
 - `references/mermaid-images.md` — Mermaid rendering and image placement
 - `references/review-comments.md` — comment-thread handling
+- `references/reliability-and-timeouts.md` — API retries, timeouts, and large-doc handling
 - `references/command-recipes.md` — copy/paste operational commands
 
 ## Why this is split up
