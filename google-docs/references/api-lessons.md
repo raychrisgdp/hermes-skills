@@ -102,10 +102,19 @@ for element in content:
 ## Mermaid / Inline Image Handling
 
 - Render Mermaid locally to an image before publishing; the Docs API will not render Mermaid fences directly.
-- Prefer `npx @mermaid-js/mermaid-cli --no-sandbox` (or an equivalent local renderer) and then insert the rendered file as an inline image.
+- Use `npx --yes @mermaid-js/mermaid-cli@11.4.3 -i input.mmd -o output.png -p /tmp/pp.json` with a `pp.json` containing `{"args": ["--no-sandbox"]}` for headless Chromium safety.
+- Insert the rendered file as an inline image with `scripts/docs_advanced.py insert_image(doc_id, image_path, start_index=..., width_pts=..., height_pts=...)`.
 - Insert the image after the paragraph or heading that introduces the diagram, not at the raw fence location, to avoid the image sitting on the same visual layer as surrounding text.
 - Keep the inline size conservative. For tall diagrams, cap width and let the image scale to fit the page rather than letting the default size overflow the document.
-- After publishing, re-export the doc and verify that the rendered image exists and that the surrounding text still reads correctly.
+- After publishing, re-export the doc with `docs_api.py get <doc_id> --md` and confirm the image plus surrounding text look right.
+
+## Command Recipes
+
+- Auth check: `python3 ~/.hermes/skills/productivity/google-docs/scripts/setup.py --check`
+- Publish a folder: `python3 ~/.hermes/skills/productivity/google-docs/scripts/publish_pipeline.py /path/to/markdown/folder`
+- Inspect rendered content: `python3 ~/.hermes/skills/productivity/google-docs/scripts/docs_api.py get <doc_id> --md`
+- Inspect raw document structure: `python3 ~/.hermes/skills/productivity/google-docs/scripts/docs_api.py get <doc_id> --raw`
+- Insert an image: call `docs_advanced.insert_image(...)` with an explicit `start_index` and size if the diagram is tall.
 
 ## Markdown Conversion
 

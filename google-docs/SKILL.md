@@ -30,4 +30,10 @@ You can simply ask me in plain English:
 *   **When publishing docs sets**: Prefer publishing only the requested Markdown subtree unless the user explicitly asks for specs, commands, or other adjacent content.
 *   **When the docs contain Mermaid**: Render the diagrams locally to images, insert them inline after the anchor paragraph/heading, and keep the images sized to fit the page.
 *   **When the user wants a doc synced**: Re-export or inspect the result after publishing so you can verify that links, code blocks, and images actually rendered the way you intended.
+*   **Operational recipes**:
+    *   Auth check: `python3 ~/.hermes/skills/productivity/google-docs/scripts/setup.py --check`
+    *   Publish a folder: `python3 ~/.hermes/skills/productivity/google-docs/scripts/publish_pipeline.py /path/to/markdown/folder`
+    *   Inspect a doc: `python3 ~/.hermes/skills/productivity/google-docs/scripts/docs_api.py get <doc_id> --md`
+    *   Inspect raw structure: `python3 ~/.hermes/skills/productivity/google-docs/scripts/docs_api.py get <doc_id> --raw`
+    *   Insert an image: use `scripts/docs_advanced.py` `insert_image(doc_id, image_path, start_index=..., width_pts=..., height_pts=...)`
 *   **Technical Reference**: For detailed API limitations (e.g., "Tabs are not supported"), Markdown conversion caveats, and script locations, see `references/api-lessons.md`.
