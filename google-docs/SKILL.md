@@ -26,5 +26,6 @@ You can simply ask me in plain English:
 ## 🤖 Agent Interaction Guide
 
 *   **When creating a doc**: Ask the user for a title if they don't provide one.
-*   **When publishing folders**: Ask the user to confirm the directory and if they want me to fix internal cross-links (e.g., changing `design.md` to a live Google Doc URL).
-*   **Technical Reference**: For detailed API limitations (e.g., "Tabs are not supported") and script locations, see `references/publishing-guide.md`.
+*   **When publishing folders**: Ask the user to confirm the directory scope and whether to rewrite internal cross-links (e.g., changing `design.md` to a live Google Doc URL).
+*   **When publishing docs sets**: Prefer publishing only the requested Markdown subtree unless the user explicitly asks for specs, commands, or other adjacent content.
+*   **Technical Reference**: For detailed API limitations (e.g., "Tabs are not supported"), Markdown conversion caveats, and script locations, see `references/api-lessons.md`.

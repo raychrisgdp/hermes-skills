@@ -91,6 +91,13 @@ for element in content:
 | `Index must be less than the end index of the referenced segment` | Calculated index out of bounds after previous operations | Recalculate offsets, or do operations in reverse order |
 | `Cannot find field: deleteRange` | API uses `deleteContentRange` not `deleteRange` | Use correct field name |
 
+## Publishing Scope
+
+- Prefer publishing the requested Markdown subtree only; do not silently include adjacent agent commands, specs, or roadmap files unless the user asks for them.
+- When a published document links to another published Markdown file, rewrite that relative link to the target Google Docs URL.
+- If a Markdown target is intentionally excluded from the publish set, use a stable source URL instead of leaving a broken relative link behind.
+- Keep the cross-link map deterministic so re-runs preserve navigation.
+
 ## Markdown Conversion
 
 ### MD → Docs (Headings)
