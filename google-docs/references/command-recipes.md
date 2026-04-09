@@ -17,6 +17,11 @@
 
 ## Insert image
 - `docs_advanced.insert_image(doc_id, image_path, start_index=..., width_pts=..., height_pts=...)`
+- The helper now defaults to public Drive access for the uploaded image so Docs can fetch the thumbnail URI.
+- `width_pts` / `height_pts` resize the image before upload.
+
+## Switch page orientation
+- `docs_advanced.set_page_orientation(doc_id, landscape=True)`
 
 ## Recovery when reads time out
 - Do not keep retrying `--raw` on a huge doc.

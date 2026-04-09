@@ -22,11 +22,14 @@
 - Insert after the paragraph or heading that introduces the diagram.
 - Do not insert at the raw fence location.
 - Prefer one structure read, then insert all images in reverse order so indices stay stable.
+- Make the uploaded image public before inserting it; the Docs API is much more reliable when the thumbnail URI is readable.
+- `width_pts` and `height_pts` are now resize hints before upload, not a Docs API object-size flag.
 
 ## Sizing
 - Keep the image conservative so it fits within the page.
+- Use a larger cap for landscape-ready diagrams; portrait layouts often look cramped around 400-450 pt wide, while landscape layouts can usually take 600-640 pt.
 - For tall diagrams, cap the width and let the aspect ratio reduce the height.
-- If the ERD or diagram still feels huge, shrink it again instead of letting it float awkwardly through the text.
+- If the ERD or diagram still feels huge, either move it to a landscape page section or shrink it again instead of letting it float awkwardly through the text.
 
 ## Verify
 - Re-export the doc.
