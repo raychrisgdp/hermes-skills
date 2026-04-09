@@ -28,4 +28,6 @@ You can simply ask me in plain English:
 *   **When creating a doc**: Ask the user for a title if they don't provide one.
 *   **When publishing folders**: Ask the user to confirm the directory scope and whether to rewrite internal cross-links (e.g., changing `design.md` to a live Google Doc URL).
 *   **When publishing docs sets**: Prefer publishing only the requested Markdown subtree unless the user explicitly asks for specs, commands, or other adjacent content.
+*   **When the docs contain Mermaid**: Render the diagrams locally to images, insert them inline after the anchor paragraph/heading, and keep the images sized to fit the page.
+*   **When the user wants a doc synced**: Re-export or inspect the result after publishing so you can verify that links, code blocks, and images actually rendered the way you intended.
 *   **Technical Reference**: For detailed API limitations (e.g., "Tabs are not supported"), Markdown conversion caveats, and script locations, see `references/api-lessons.md`.
