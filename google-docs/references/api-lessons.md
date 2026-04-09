@@ -97,6 +97,15 @@ for element in content:
 - When a published document links to another published Markdown file, rewrite that relative link to the target Google Docs URL.
 - If a Markdown target is intentionally excluded from the publish set, use a stable source URL instead of leaving a broken relative link behind.
 - Keep the cross-link map deterministic so re-runs preserve navigation.
+- For multi-doc handoffs, keep the original tab URLs handy and rewrite internal links toward those canonical destinations when the user wants the final parent doc to point back into a tabbed Google Doc.
+
+## Mermaid / Inline Image Handling
+
+- Render Mermaid locally to an image before publishing; the Docs API will not render Mermaid fences directly.
+- Prefer `npx @mermaid-js/mermaid-cli --no-sandbox` (or an equivalent local renderer) and then insert the rendered file as an inline image.
+- Insert the image after the paragraph or heading that introduces the diagram, not at the raw fence location, to avoid the image sitting on the same visual layer as surrounding text.
+- Keep the inline size conservative. For tall diagrams, cap width and let the image scale to fit the page rather than letting the default size overflow the document.
+- After publishing, re-export the doc and verify that the rendered image exists and that the surrounding text still reads correctly.
 
 ## Markdown Conversion
 
