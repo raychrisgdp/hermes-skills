@@ -17,6 +17,7 @@
 
 ## Insert image
 - `docs_advanced.insert_image(doc_id, image_path, start_index=..., width_pts=..., height_pts=...)`
+- The first argument should be the native Google Doc ID, not a Drive Markdown file ID.
 - The helper now defaults to public Drive access for the uploaded image so Docs can fetch the thumbnail URI.
 - `width_pts` / `height_pts` resize the image before upload.
 

@@ -2,7 +2,7 @@
 name: google-docs
 description: Create, edit, and publish Google Docs with professional formatting, tables, and internal links using natural language.
 tags: ["Google", "Docs", "Writing", "Publishing"]
-version: 4.3.0
+version: 4.3.1
 ---
 
 # Google Docs Skill
@@ -23,7 +23,7 @@ Use this skill for Google Docs creation, publishing, link rewriting, review comm
 - For Markdown import/update behavior: `references/markdown-pipeline.md`
 - For Mermaid and image insertion: `references/mermaid-images.md`
 - For comments and review threads: `references/review-comments.md`
-- For API retries, timeouts, and large-doc handling: `references/reliability-and-timeouts.md`
+- For reliability, timeouts, and the support path: `references/reliability-and-timeouts.md`
 - For exact shell commands: `references/command-recipes.md`
 - For the longer API caveats index: `references/api-lessons.md`
 

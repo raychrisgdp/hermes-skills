@@ -1,33 +1,37 @@
-# Reliability and Timeouts
+# Reliability and Timeout Guidance
 
-## Why timeouts happen
-- Google Docs API calls can time out on large documents.
-- `documents().get()` returns a large JSON payload when you ask for the whole doc.
-- Repeated full-doc reads inside a loop make the problem worse.
-- Transient 500s and quota pressure can happen after several successive batch updates.
+## The support path
+When a docs workflow fails, follow this order:
+1. Check auth.
+2. Check the Drive file MIME type.
+3. If the file is not `application/vnd.google-apps.document`, stop and fix the import step.
+4. Keep the write path in one foreground script or notebook cell.
+5. If you need a retry, rerun the same foreground script after a short backoff.
+6. Only use a direct Google API client with a longer HTTP timeout for verification.
 
-## What to do instead
-- Avoid repeated full-document reads.
-- Read the document once, cache the paragraph map, and reuse it.
-- When you only need an anchor, search the source Markdown first.
-- Only fetch the doc structure again if the text moved.
-- Keep image insertion and structure discovery as separate steps.
-- Use `docs_api.py get <doc_id> --raw --fields '...'` when you only need a narrow slice of the document.
+## Preferred execution pattern
+- One script creates/imports the doc.
+- The same script checks MIME type.
+- The same script renders Mermaid.
+- The same script inserts images.
+- The same script prints the doc ID and the exact next verification step.
+- If any step fails, stop and fix that step before starting another background job.
 
-## Retry guidance
-- Retry 429/500/timeouts with exponential backoff.
-- Do not hammer the API with the same request in a tight loop.
-- If a single insertion keeps failing, wait and try again with the same input.
-- Avoid `nohup` for the actual write path; use a foreground run so the agent can stop on the first failing step instead of discovering it later.
+## What usually breaks
+- Hiding writes behind `nohup` or a background shell process.
+- Calling Docs API edits on a Drive Markdown file instead of a native Google Doc.
+- Using a fake anchor like `start_index=1` instead of a real heading end index.
+- Re-reading the full raw document repeatedly on a large doc.
 
-## Large-doc fallback
-- If a full raw export times out, do not keep asking for `--raw`.
-- Try a narrower inspection path or a direct Docs client with a longer HTTP timeout.
-- If the doc is huge, use source Markdown anchors and a single structure read instead of repeated exports.
-- If even that is too slow, split the work into smaller docs or smaller insertion batches.
+## Minimum checks before image insertion
+- The imported file is a native Google Doc.
+- The diagram PNG is public.
+- The page is landscape if the diagram is wide.
+- The insert runs in the same foreground process that created the anchor data.
 
-## Practical rule
-- One read to map structure.
-- One pass to render or import.
-- One pass to insert images.
-- Then verify the result.
+## Verification fallback
+If `docs_api.py get <doc_id> --md` times out:
+- use a direct `docs.googleapis.com` client
+- set `httplib2.Http(timeout=120)`
+- fetch the smallest useful payload
+- do not switch back to `--raw` loops
