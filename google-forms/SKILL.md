@@ -2,7 +2,7 @@
 name: google-forms
 description: Create and manage Google Forms via Google Apps Script Web App.
 tags: ["Google", "Forms", "Automation"]
-version: 2.3.0
+version: 3.1.0
 ---
 
 # Google Forms Skill
@@ -12,25 +12,18 @@ Create and manage Google Forms through a Google Apps Script Web App.
 ## What this skill uses
 - Web-app flow only, no OAuth
 - One env var: `GFORMS` (the deployed Web App URL)
+- Python helper: `scripts/gform.py` (handles redirects, no shell pipes)
 
 ## Pre-flight check
 Before using any command, run this:
 
 ```bash
-if [ -f ~/gform_automation/.env ]; then
-  set -a; source ~/gform_automation/.env; set +a
-  # Quick connectivity test (uses redirect pattern — see below)
-  resp=$(curl -s -i -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"list"}')
-  loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
-  if [ -n "$loc" ]; then curl -s "$loc" | head -c 200; else echo "NO_REDIRECT"; fi
-else
-  echo "NOT_CONFIGURED"
-fi
+python3 scripts/gform.py list
 ```
 
-- If the test returns JSON with forms → proceed with the user's request
-- If it returns `NOT_CONFIGURED` → run the **From scratch setup** below, then come back
-- If it returns HTML or `NO_REDIRECT` → the web app URL may be wrong or not deployed as Anyone access
+- If it returns JSON with forms → proceed with the user's request
+- If it returns `GFORMS not set` → run the **From scratch setup** below
+- If it returns an HTTP error or timeout → the web app URL may be wrong or not deployed as Anyone access
 
 ## From scratch setup
 1. Open [script.new](https://script.new)
@@ -49,58 +42,69 @@ GFORMS=https://script.google.com/macros/s/YOUR_WEBAPP_ID/exec
 EOF
 ```
 
-Load it in shell sessions with:
-```bash
-set -a
-source ~/gform_automation/.env
-set +a
-```
+## Core workflow — Python helper (primary)
 
-## Core workflow
-All actions go through the web app. Google returns a redirect (302) with a `Location` header — `curl -L` does not reliably follow it to JSON. Always use the two-step pattern:
-
-```bash
-# Helper: gform <json-payload>
-gform() {
-  resp=$(curl -s -i -X POST "$GFORMS" -H 'Content-Type: application/json' --data-binary "$1")
-  loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
-  if [ -z "$loc" ]; then
-    printf '%s' "$resp" | tail -c 500
-  else
-    curl -s "$loc"
-  fi
-}
-```
-
-After defining the helper, all commands become one-liners.
-
-### Create a form
-```bash
-gform '{"action":"create","title":"My Form","description":"Optional","questions":[{"type":"text","title":"Your name","required":true}]}'
-```
+Use `scripts/gform.py` for all actions. It handles the redirect automatically and works in sandboxed environments where `curl | sed` piping is blocked.
 
 ### List forms
 ```bash
-gform '{"action":"list"}'
+python3 scripts/gform.py list
 ```
 
 ### Get form
 ```bash
-gform '{"action":"get","formId":"FORM_ID"}'
+python3 scripts/gform.py get FORM_ID
 ```
 
-### Add questions
+### Create a form
 ```bash
-gform '{"action":"addQuestions","formId":"FORM_ID","questions":[{"type":"rating","title":"Rate 1-10","required":true,"scaleMax":10}]}'
+python3 scripts/gform.py create --title "My Form" --description "Optional desc"
+```
+
+For forms with questions, use a JSON file:
+```bash
+cat > /tmp/questions.json <<'JSON'
+[
+  {"type": "text", "title": "Your name", "required": true},
+  {"type": "paragraph", "title": "Your feedback", "required": true}
+]
+JSON
+python3 scripts/gform.py create --title "Feedback Form" --questions /tmp/questions.json
+```
+
+### Add questions to existing form
+```bash
+python3 scripts/gform.py add-questions FORM_ID /tmp/questions.json
 ```
 
 ### Get responses
 ```bash
-gform '{"action":"responses","formId":"FORM_ID"}'
+python3 scripts/gform.py responses FORM_ID
 ```
 
+### Raw JSON mode
+```bash
+python3 scripts/gform.py '{"action":"list"}'
+```
+
+## Core workflow — bash helper (fallback)
+
+If Python is unavailable, define this bash function first:
+
+```bash
+gform() {
+  resp=$(curl -s -i -X POST "$GFORMS" -H 'Content-Type: application/json' --data-binary "$1")
+  loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
+  if [ -z "$loc" ]; then printf '%s' "$resp" | tail -c 500; else curl -s "$loc"; fi
+}
+```
+
+Then: `gform '{"action":"list"}'`
+
+**Warning:** Some sandbox environments block `curl ... | sed ...` piping. Use the Python helper instead when this happens.
+
 ## Markdown template
-For a copy-paste starting point with every question type, see `references/form-markdown-template.md`. Write the form structure in markdown first, then convert to JSON for the curl payload.
+For a copy-paste starting point with every question type, see `references/form-markdown-template.md`. Write the form structure in markdown first, then convert to JSON for the payload.
 
 ## Question patterns
 Use generic, reusable patterns when building forms:
@@ -148,7 +152,7 @@ Use generic, reusable patterns when building forms:
 | `email` | `title`, `required` | Email validation |
 
 ## Rating questions
-Google Forms rating questions use `addRatingItem()`. They support 1–10 levels and three icon styles: STAR, HEART, THUMB_UP.
+Google Forms rating questions use `addRatingItem()`. They support 1-10 levels and three icon styles: STAR, HEART, THUMB_UP.
 
 ```json
 {
@@ -169,8 +173,7 @@ After editing `scripts/appscript_code.gs`:
 
 ## Known pitfalls
 1. Saving code does not update the web app; you must deploy a new version.
-2. **All actions redirect** (302 + Location). `curl -L` returns HTML instead of JSON. Always use the two-step redirect pattern or the `gform` helper above.
+2. **All actions redirect** (302 + Location). `curl -L` returns HTML instead of JSON. Always use the Python helper or the bash redirect pattern.
 3. Use `addRatingItem()` for numbered 1-10 rating questions instead of `addScaleItem()`.
 4. If a command times out, retry once after a short pause; avoid backgrounding the write path.
-5. If create fails silently (no Location header), check the raw response — it usually contains the error. Do not blindly retry create or you will produce duplicate forms.
-
+5. If create fails silently, check the raw response for errors. Do not blindly retry create or you will produce duplicate forms.
