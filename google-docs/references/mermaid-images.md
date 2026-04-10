@@ -30,15 +30,17 @@
 - Prefer one structure read, then insert all images in reverse order so indices stay stable.
 - If there are multiple Mermaid blocks, insert the last one first so earlier indices do not shift.
 - Make the uploaded image public before inserting it; the Docs API is much more reliable when the thumbnail URI is readable.
-- `width_pts` and `height_pts` are now resize hints before upload, not a Docs API object-size flag.
+- `width_pts` and `height_pts` are resize hints before upload, not a Docs API object-size flag.
 - When the heading text is imported from Markdown, the `###` markers disappear. Match the plain text heading text in the doc structure instead.
 - After insertion, verify `inlineObjects` in the live Docs API response so you know the image really landed.
 
 ## Sizing
 - Keep the image conservative so it fits within the page.
-- Use a larger cap for landscape-ready diagrams; portrait layouts often look cramped around 400-450 pt wide, while landscape layouts can usually take 600-640 pt.
+- Default to **500-560 pt** for the first wide overview diagram if it is sharing space with nearby text.
+- Default to **440-500 pt** for the second runtime/boundary diagram so it does not push the surrounding prose down too hard.
+- Use **600 pt only when the diagram is still readable and the page is landscape with enough surrounding whitespace**.
 - For tall diagrams, cap the width and let the aspect ratio reduce the height.
-- If the ERD or diagram still feels huge, either move it to a landscape page section or shrink it again instead of letting it float awkwardly through the text.
+- If the diagram still feels huge, shrink it again instead of letting it float awkwardly through the text.
 
 ## Verify
 - Re-export the doc.
