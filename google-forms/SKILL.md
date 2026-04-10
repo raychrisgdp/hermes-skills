@@ -7,13 +7,16 @@ version: 2.1.0
 
 # Google Forms Skill
 
-Create and manage Google Forms from the CLI using a Google Apps Script Web App.
+Create and manage Google Forms through a Google Apps Script Web App.
 
-## Active Local Configuration
-Use a simple shell env or `.env` file with one variable:
+## What users need
+This skill uses the web-app path only.
+No OAuth is required for normal use.
+
+The only local env value is:
 - `GFORMS=https://script.google.com/macros/s/.../exec`
 
-For a fresh local setup, create `~/gform_automation/.env`:
+Create `~/gform_automation/.env`:
 ```bash
 cat > ~/gform_automation/.env <<'EOF'
 GFORMS=https://script.google.com/macros/s/YOUR_WEBAPP_ID/exec
@@ -36,8 +39,8 @@ set +a
 6. Set Who has access: Anyone
 7. Copy the Web App URL into `~/gform_automation/.env`
 
-## Usage
-All commands go through the Forms web app.
+## Workflow
+All actions go through the web app.
 
 ### Create a form
 Writes are a two-step redirect flow. Capture the `Location` header, then fetch that URL for the JSON response.
@@ -69,13 +72,6 @@ curl -s -L -X POST "$GFORMS" \
 ### Get responses
 ```bash
 curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"responses","formId":"FORM_ID"}'
-```
-
-### Convert dropdowns to Rating (Stars) in-place
-```bash
-curl -s -L -X POST "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"convertListToRating","formId":"FORM_ID","titleIncludes":["VASCULARITY","PIGMENTATION"],"ratingIcon":"STAR"}'
 ```
 
 ## Supported Question Types
@@ -118,9 +114,5 @@ After editing `scripts/appscript_code.gs`:
 3. Use `addRatingItem()` for numbered 1-10 rating questions instead of `addScaleItem()`.
 4. If a command times out, retry once after a short pause; avoid backgrounding the write path.
 
-## Forms Created
-| Form | Status | Type |
-|------|--------|------|
-| Vancouver Scar Scale (VSS) | ✅ Created | Multiple choice with point labels |
-| POSAS Observer Assessment | ✅ Created + converted to Rating | 6 parameters, Stars 1-10 |
-| SCAR-Q Questionnaire | ⏳ Pending creation | 12 questions, 5-point Likert |
+## Notes on OAuth
+The older `scripts/forms_api.py` path exists, but it is not the normal path for this skill. Treat it as legacy/OAuth-only and ignore it unless you specifically need the OAuth CLI route.
