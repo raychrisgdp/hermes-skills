@@ -10,9 +10,24 @@ version: 2.3.0
 Create and manage Google Forms through a Google Apps Script Web App.
 
 ## What this skill uses
-- Web-app flow only
-- No OAuth
-- One env var: `GFORMS`
+- Web-app flow only, no OAuth
+- One env var: `GFORMS` (the deployed Web App URL)
+
+## Pre-flight check
+Before using any command, run this:
+
+```bash
+if [ -f ~/gform_automation/.env ]; then
+  set -a; source ~/gform_automation/.env; set +a
+  # Quick connectivity test
+  curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"list"}' | head -c 200
+else
+  echo "NOT_CONFIGURED"
+fi
+```
+
+- If the test returns JSON with forms → proceed with the user's request
+- If it returns `NOT_CONFIGURED` → run the **From scratch setup** below, then come back
 
 ## From scratch setup
 1. Open [script.new](https://script.new)
