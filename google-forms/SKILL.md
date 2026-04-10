@@ -19,8 +19,10 @@ Before using any command, run this:
 ```bash
 if [ -f ~/gform_automation/.env ]; then
   set -a; source ~/gform_automation/.env; set +a
-  # Quick connectivity test
-  curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"list"}' | head -c 200
+  # Quick connectivity test (uses redirect pattern — see below)
+  resp=$(curl -s -i -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"list"}')
+  loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
+  if [ -n "$loc" ]; then curl -s "$loc" | head -c 200; else echo "NO_REDIRECT"; fi
 else
   echo "NOT_CONFIGURED"
 fi
@@ -28,6 +30,7 @@ fi
 
 - If the test returns JSON with forms → proceed with the user's request
 - If it returns `NOT_CONFIGURED` → run the **From scratch setup** below, then come back
+- If it returns HTML or `NO_REDIRECT` → the web app URL may be wrong or not deployed as Anyone access
 
 ## From scratch setup
 1. Open [script.new](https://script.new)
@@ -54,41 +57,46 @@ set +a
 ```
 
 ## Core workflow
-All actions go through the web app.
+All actions go through the web app. Google returns a redirect (302) with a `Location` header — `curl -L` does not reliably follow it to JSON. Always use the two-step pattern:
+
+```bash
+# Helper: gform <json-payload>
+gform() {
+  resp=$(curl -s -i -X POST "$GFORMS" -H 'Content-Type: application/json' --data-binary "$1")
+  loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
+  if [ -z "$loc" ]; then
+    printf '%s' "$resp" | tail -c 500
+  else
+    curl -s "$loc"
+  fi
+}
+```
+
+After defining the helper, all commands become one-liners.
 
 ### Create a form
-Writes return a redirect first. Capture the `Location` header, then fetch that URL for the JSON response.
 ```bash
-payload='{"action":"create","title":"My Form","description":"Optional description","questions":[...]}'
-
-resp=$(curl -s -i -X POST "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  --data-binary "$payload")
-
-loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
-curl -s "$loc"
+gform '{"action":"create","title":"My Form","description":"Optional","questions":[{"type":"text","title":"Your name","required":true}]}'
 ```
 
 ### List forms
 ```bash
-curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"list"}'
+gform '{"action":"list"}'
 ```
 
 ### Get form
 ```bash
-curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"get","formId":"FORM_ID"}'
+gform '{"action":"get","formId":"FORM_ID"}'
 ```
 
 ### Add questions
 ```bash
-curl -s -L -X POST "$GFORMS" \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"addQuestions","formId":"FORM_ID","questions":[{"type":"rating","title":"Rate 1-10","required":true,"scaleMax":10}]}'
+gform '{"action":"addQuestions","formId":"FORM_ID","questions":[{"type":"rating","title":"Rate 1-10","required":true,"scaleMax":10}]}'
 ```
 
 ### Get responses
 ```bash
-curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"responses","formId":"FORM_ID"}'
+gform '{"action":"responses","formId":"FORM_ID"}'
 ```
 
 ## Markdown template
@@ -161,7 +169,8 @@ After editing `scripts/appscript_code.gs`:
 
 ## Known pitfalls
 1. Saving code does not update the web app; you must deploy a new version.
-2. Create/update actions may redirect. For writes, capture the `Location` header and fetch that URL.
+2. **All actions redirect** (302 + Location). `curl -L` returns HTML instead of JSON. Always use the two-step redirect pattern or the `gform` helper above.
 3. Use `addRatingItem()` for numbered 1-10 rating questions instead of `addScaleItem()`.
 4. If a command times out, retry once after a short pause; avoid backgrounding the write path.
+5. If create fails silently (no Location header), check the raw response — it usually contains the error. Do not blindly retry create or you will produce duplicate forms.
 
