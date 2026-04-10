@@ -39,6 +39,8 @@ When creating several docs from a folder of Markdown files:
 - If you want a different naming convention (e.g. "GL Runner - Architecture"), search for existing docs first to avoid duplicates, or rename after creation with `drive.files().update(fileId=..., body={"name": new_title})`.
 - Import the docs first, then insert Mermaid images in a second pass. Mixing import and image insertion in one script is fine but keep them as separate steps.
 - If direct `MediaIoBaseUpload` times out on a large Markdown file (84KB+), the pipeline script typically succeeds where the one-off call fails.
+- Check for existing docs by name before creating to avoid duplicates: `drive.files().list(q="name='TITLE' and mimeType='application/vnd.google-apps.document' and trashed=false")`.
+- After pipeline import, insert Mermaid images as a separate step — the pipeline does not handle image insertion.
 
 ## Verification fallback
 If `docs_api.py get <doc_id> --md` times out:
