@@ -28,6 +28,8 @@ When a docs workflow fails, follow this order:
 - The diagram PNG is public.
 - The page is landscape if the diagram is wide.
 - The insert runs in the same foreground process that created the anchor data.
+- If there are multiple diagrams, insert the later one first.
+- Verify success by reading `inlineObjects` from the Docs API, not by relying only on markdown export.
 
 ## Verification fallback
 If `docs_api.py get <doc_id> --md` times out:

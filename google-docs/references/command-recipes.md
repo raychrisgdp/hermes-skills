@@ -20,6 +20,8 @@
 - The first argument should be the native Google Doc ID, not a Drive Markdown file ID.
 - The helper now defaults to public Drive access for the uploaded image so Docs can fetch the thumbnail URI.
 - `width_pts` / `height_pts` resize the image before upload.
+- When inserting multiple diagrams, insert the later one first.
+- Verify the final doc with `inlineObjects`, not only with Markdown export.
 
 ## Switch page orientation
 - `docs_advanced.set_page_orientation(doc_id, landscape=True)`

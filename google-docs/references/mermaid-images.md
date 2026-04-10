@@ -28,8 +28,10 @@
 - Insert after the paragraph or heading that introduces the diagram.
 - Do not insert at the raw fence location.
 - Prefer one structure read, then insert all images in reverse order so indices stay stable.
+- If there are multiple Mermaid blocks, insert the last one first so earlier indices do not shift.
 - Make the uploaded image public before inserting it; the Docs API is much more reliable when the thumbnail URI is readable.
 - `width_pts` and `height_pts` are now resize hints before upload, not a Docs API object-size flag.
+- When the heading text is imported from Markdown, the `###` markers disappear. Match the plain text heading text in the doc structure instead.
 
 ## Sizing
 - Keep the image conservative so it fits within the page.
