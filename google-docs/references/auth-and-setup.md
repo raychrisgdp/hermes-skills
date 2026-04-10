@@ -8,14 +8,45 @@ You need two things:
 1. **A Google Cloud project** with Docs API and Drive API enabled, plus an OAuth client ID.
 2. **A token** obtained by running the auth flow on your machine.
 
-If you already have both, just run the check:
+## Quick check
 
 ```
 python3 ~/.hermes/skills/productivity/google-docs/scripts/setup.py --check
 ```
 
-If it prints `AUTHENTICATED` or `AUTHENTICATED (refreshed)`, you are done.
-If not, follow the steps below.
+- `AUTHENTICATED` or `AUTHENTICATED (refreshed)` → you are done, stop here
+- `NOT_AUTHENTICATED` → no token yet, follow the full setup below
+- `REFRESH_FAILED` → token expired and renewal failed, see Troubleshooting
+- `TOKEN_CORRUPT` → token file is broken, run `--revoke` then re-auth
+
+If you get `NOT_AUTHENTICATED` and have never set this up before, you need
+to create OAuth credentials first. See Step 1 below.
+
+---
+
+## Step 0 — Do you already have a Google Cloud project?
+
+Before creating anything, check what you already have.
+
+**Personal Gmail account:**
+You do not have an enterprise project. Create your own — skip to Step 1.
+
+**Workspace (company) account:**
+
+| Option | Pros | Cons |
+|--------|------|------|
+| Use your company's existing GCP project | Already exists, IT manages it | IT controls OAuth clients and scopes; you may need approval to create credentials; they can revoke your access anytime |
+| Create your own personal GCP project | Full control, no approval bottleneck | Your org may block project creation by non-admins |
+
+**Recommendation:** Create your own project even in an enterprise.
+It isolates your credentials from the shared project and avoids approval gates.
+
+**How to check if you can create projects:**
+Go to https://console.cloud.google.com → look at the project dropdown (top bar).
+If you see a **New Project** button, you can create one.
+If it's greyed out or missing, your org restricts it — ask IT to either:
+- Give you the `resourcemanager.projects.create` permission, or
+- Create a project for you with Docs API + Drive API enabled and let you create an OAuth client ID in it
 
 ---
 
