@@ -32,6 +32,7 @@
 - Make the uploaded image public before inserting it; the Docs API is much more reliable when the thumbnail URI is readable.
 - `width_pts` and `height_pts` are now resize hints before upload, not a Docs API object-size flag.
 - When the heading text is imported from Markdown, the `###` markers disappear. Match the plain text heading text in the doc structure instead.
+- After insertion, verify `inlineObjects` in the live Docs API response so you know the image really landed.
 
 ## Sizing
 - Keep the image conservative so it fits within the page.
