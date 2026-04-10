@@ -10,10 +10,9 @@ version: 2.3.0
 Create and manage Google Forms through a Google Apps Script Web App.
 
 ## What this skill uses
-- Web-app flow only for normal use
+- Web-app flow only
 - No OAuth
-- One required env var: `GFORMS`
-- Optional env var if your deployment enforces it: `GFORMS_SECRET`
+- One env var: `GFORMS`
 
 ## From scratch setup
 1. Open [script.new](https://script.new)
@@ -23,15 +22,12 @@ Create and manage Google Forms through a Google Apps Script Web App.
 5. Set Execute as: Me
 6. Set Who has access: Anyone
 7. Copy the deployed Web App URL into `~/gform_automation/.env`
-8. If your script uses a shared secret, generate one and store it in both the Apps Script code and `GFORMS_SECRET`
 
 ## Local config
 Create `~/gform_automation/.env`:
 ```bash
 cat > ~/gform_automation/.env <<'EOF'
 GFORMS=https://script.google.com/macros/s/YOUR_WEBAPP_ID/exec
-# Optional, only if your deployed script checks a secret:
-# GFORMS_SECRET=YOUR_SHARED_SECRET
 EOF
 ```
 
@@ -56,11 +52,6 @@ resp=$(curl -s -i -X POST "$GFORMS" \
 
 loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
 curl -s "$loc"
-```
-
-If your deployment requires a secret, include it in the JSON body:
-```bash
-payload='{"secret":"'"$GFORMS_SECRET"'","action":"create",...}'
 ```
 
 ### List forms
@@ -148,13 +139,11 @@ After editing `scripts/appscript_code.gs`:
 1. Save in Apps Script
 2. Deploy → Manage deployments → Edit → New version → Deploy
 3. Copy the new Web App URL into `~/gform_automation/.env` if it changed
-4. If your script uses a secret, update `GFORMS_SECRET` to match
-5. If `Page Not Found` appears, verify access is still set to Anyone
+4. If `Page Not Found` appears, verify access is still set to Anyone
 
 ## Known pitfalls
 1. Saving code does not update the web app; you must deploy a new version.
 2. Create/update actions may redirect. For writes, capture the `Location` header and fetch that URL.
 3. Use `addRatingItem()` for numbered 1-10 rating questions instead of `addScaleItem()`.
 4. If a command times out, retry once after a short pause; avoid backgrounding the write path.
-5. If you use a shared secret in your deployment, the request body must include the matching `secret` field.
 
