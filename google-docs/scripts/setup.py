@@ -55,10 +55,24 @@ def _load_pending() -> dict:
 # ── commands ───────────────────────────────────────────
 
 def check_auth():
-    if not TOKEN_PATH.exists():
-        print(f"NOT_AUTHENTICATED")
-        return False
     _ensure_deps()
+    has_secret = CLIENT_SECRET_PATH.exists()
+    if not TOKEN_PATH.exists():
+        if not has_secret:
+            print("NOT_AUTHENTICATED")
+            print("No client secret found.")
+            print("You need OAuth credentials from Google Cloud Console.")
+            print(f"  1. Create a GCP project → enable Docs API + Drive API")
+            print(f"  2. Create an OAuth client ID (type: Desktop app)")
+            print(f"  3. Download the JSON and run:")
+            print(f"     setup.py --client-secret /path/to/client_secret.json")
+            print(f"  4. Then run: setup.py --auth-url")
+            print(f"See references/auth-and-setup.md for full instructions.")
+        else:
+            print("NOT_AUTHENTICATED")
+            print(f"Client secret exists at {CLIENT_SECRET_PATH}")
+            print("Run: setup.py --auth-url")
+        return False
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
     try:
@@ -68,8 +82,20 @@ def check_auth():
         return False
     if creds.valid:
         print("AUTHENTICATED")
+        if not has_secret:
+            print("NOTE: client secret not found — token refresh will fail when access token expires.")
+            print(f"      Store it with: setup.py --client-secret /path/to/client_secret.json")
         return True
     if creds.expired and creds.refresh_token:
+        if not has_secret:
+            print("REFRESH_FAILED")
+            print("Token expired and no client secret to refresh it.")
+            print(f"  1. Download OAuth client JSON from Cloud Console → APIs → Credentials")
+            print(f"  2. Run: setup.py --client-secret /path/to/client_secret.json")
+            print(f"  3. Run: setup.py --check  (to retry refresh)")
+            print(f"Or revoke and re-auth from scratch:")
+            print(f"  setup.py --revoke && setup.py --auth-url")
+            return False
         try:
             creds.refresh(Request())
             TOKEN_PATH.write_text(creds.to_json())
@@ -77,8 +103,17 @@ def check_auth():
             return True
         except Exception as e:
             print(f"REFRESH_FAILED: {e}")
+            print("Try revoking and re-authenticating:")
+            print(f"  setup.py --revoke")
+            print(f"  setup.py --auth-url")
             return False
     print("TOKEN_INVALID")
+    if not has_secret:
+        print("No client secret found — cannot re-authenticate.")
+        print(f"  1. Download OAuth client JSON from Cloud Console → APIs → Credentials")
+        print(f"  2. Run: setup.py --client-secret /path/to/client_secret.json")
+    else:
+        print("Run: setup.py --revoke && setup.py --auth-url")
     return False
 
 
@@ -98,7 +133,14 @@ def store_client_secret(path: str):
 
 def get_auth_url():
     if not CLIENT_SECRET_PATH.exists():
-        print("ERROR: No client secret. Run --client-secret first.", file=sys.stderr); sys.exit(1)
+        print("ERROR: No client secret found.", file=sys.stderr)
+        print(f"Expected at: {CLIENT_SECRET_PATH}", file=sys.stderr)
+        print("To get one:", file=sys.stderr)
+        print("  1. Go to https://console.cloud.google.com → APIs & Services → Credentials", file=sys.stderr)
+        print("  2. Create OAuth client ID (type: Desktop app)", file=sys.stderr)
+        print("  3. Download the JSON file", file=sys.stderr)
+        print(f"  4. Run: setup.py --client-secret /path/to/client_secret.json", file=sys.stderr)
+        sys.exit(1)
     _ensure_deps()
     from google_auth_oauthlib.flow import Flow
     flow = Flow.from_client_secrets_file(
@@ -116,7 +158,10 @@ def get_auth_url():
 
 def exchange_auth_code(code_or_url: str):
     if not CLIENT_SECRET_PATH.exists():
-        print("ERROR: No client secret.", file=sys.stderr); sys.exit(1)
+        print("ERROR: No client secret found.", file=sys.stderr)
+        print(f"Expected at: {CLIENT_SECRET_PATH}", file=sys.stderr)
+        print(f"Run: setup.py --client-secret /path/to/client_secret.json", file=sys.stderr)
+        sys.exit(1)
     pending = _load_pending()
 
     # Accept full URL or bare code
