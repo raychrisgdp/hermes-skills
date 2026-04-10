@@ -9,24 +9,24 @@ tags: ["Google", "Forms", "Automation"]
 Create and manage Google Forms from the CLI using a Google Apps Script Web App.
 
 ## Active Local Configuration
-The web-app URL and shared secret for the currently configured user.
-**DO NOT ASK USER TO REDEPLOY UNLESS NECESSARY.**
+This skill does not use a traditional `.env` file.
+The runtime config lives in `~/.hermes/google_forms_config` and contains two lines:
+- `WEB_APP_URL=https://script.google.com/macros/s/.../exec`
+- `WEB_APP_SECRET=...`
 
-Both values are stored in `~/.hermes/google_forms_config`:
-- Line 1: `WEB_APP_URL=https://script.google.com/macros/s/.../exec`
-- Line 2: `WEB_APP_SECRET=<your-secret>`
+**Do not ask the user to redeploy unless necessary.**
 
-Read them at runtime:
-```
+Read the config at runtime:
+```bash
 WEB_APP_URL=$(sed -n '1s/^WEB_APP_URL=//p' ~/.hermes/google_forms_config)
 WEB_APP_SECRET=$(sed -n '2s/^WEB_APP_SECRET=//p' ~/.hermes/google_forms_config)
 ```
 
-Then use in curl commands:
-```
+Then use it in curl commands:
+```bash
 curl -s -X POST "$WEB_APP_URL" \
   -H "Content-Type: application/json" \
-  -d '{"secret": "'"$WEB_APP_SECRET"'", "action": "list"}'
+  -d '{"secret":"'"$WEB_APP_SECRET"'","action":"list"}'
 ```
 
 ## For Other Users (Setup Guide)
