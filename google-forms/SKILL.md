@@ -91,8 +91,11 @@ curl -s -L -X POST "$GFORMS" \
 curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"responses","formId":"FORM_ID"}'
 ```
 
-## Question building blocks
-Use these generic patterns when building forms:
+## Markdown template
+For a copy-paste starting point with every question type, see `references/form-markdown-template.md`. Write the form structure in markdown first, then convert to JSON for the curl payload.
+
+## Question patterns
+Use generic, reusable patterns when building forms:
 
 - `text`: short free-text answer
 - `paragraph`: longer free-text answer
