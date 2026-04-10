@@ -48,23 +48,45 @@ def get_url() -> str:
     return url
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Suppress automatic redirect following."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_opener = urllib.request.build_opener(_NoRedirect)
+
+
 def post_and_follow(payload: dict) -> str:
-    """POST JSON to the web app, follow redirect, return response body."""
+    """POST JSON to the web app, follow redirect as GET, return response body.
+
+    Google Apps Script returns 302 to script.googleusercontent.com.
+    urllib's default redirect re-POSTs which hangs. We manually follow as GET.
+    """
     url = get_url()
     data = json.dumps(payload).encode()
 
-    # First request — expect 302 with Location header
+    # Step 1: POST — expect 302 with Location header
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
     try:
-        resp = urllib.request.urlopen(req, timeout=30)
+        _opener.open(req, timeout=15)
     except urllib.error.HTTPError as e:
-        # Some errors come as non-redirect HTTP errors
+        if e.code == 302:
+            location = e.headers.get("Location")
+            if location:
+                # Step 2: GET the redirect URL
+                get_req = urllib.request.Request(location, method="GET")
+                resp = urllib.request.urlopen(get_req, timeout=30)
+                return resp.read().decode()
         body = e.read().decode(errors="replace")
         print(f"HTTP {e.code}: {body}", file=sys.stderr)
         sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    # urllib auto-follows redirects, so resp is the final body
-    return resp.read().decode()
+    return ""
 
 
 def cmd_list():
