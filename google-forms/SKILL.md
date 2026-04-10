@@ -11,7 +11,7 @@ Create and manage Google Forms through a Google Apps Script Web App.
 
 ## What this skill uses
 - Web-app flow only for normal use
-- No OAuth for the normal path
+- No OAuth
 - One required env var: `GFORMS`
 - Optional env var if your deployment enforces it: `GFORMS_SECRET`
 
@@ -158,5 +158,3 @@ After editing `scripts/appscript_code.gs`:
 4. If a command times out, retry once after a short pause; avoid backgrounding the write path.
 5. If you use a shared secret in your deployment, the request body must include the matching `secret` field.
 
-## Legacy OAuth path
-The older `scripts/forms_api.py` path exists, but it is not the normal path for this skill. Treat it as legacy/OAuth-only unless you specifically need the OAuth CLI route.
