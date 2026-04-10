@@ -2,7 +2,7 @@
 name: google-forms
 description: Create and manage Google Forms via Google Apps Script Web App.
 tags: ["Google", "Forms", "Automation"]
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Google Forms Skill
@@ -47,7 +47,7 @@ Writes are a two-step redirect flow. Capture the `Location` header, then fetch t
 ```bash
 resp=$(curl -s -i -X POST "$GFORMS" \
   -H 'Content-Type: application/json' \
-  --data-binary '{"action":"create","title":"My Form","questions":[...]}' )
+  --data-binary '{"action":"create","title":"My Form","description":"Optional description","questions":[...]}' )
 loc=$(printf '%s' "$resp" | sed -n 's/^location: //Ip' | tr -d '\r')
 curl -s "$loc"
 ```
@@ -74,6 +74,37 @@ curl -s -L -X POST "$GFORMS" \
 curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"responses","formId":"FORM_ID"}'
 ```
 
+## Question Spec Guide
+Use these generic patterns when building forms:
+
+- `text`: short free text answer
+- `paragraph`: longer free text answer
+- `multiple_choice`: one answer from a list of options
+- `checkbox`: many answers from a list of options
+- `dropdown`: one answer from a compact list of options
+- `rating`: numeric rating from 1 to N
+- `date`: date picker
+- `time`: time picker
+- `grid`: matrix-style question with rows and columns
+- `email`: email field with validation
+
+### Generic examples
+```json
+{"type":"text","title":"Your name","required":true}
+```
+
+```json
+{"type":"multiple_choice","title":"Which option best fits?","required":true,"options":["Option A","Option B","Option C"]}
+```
+
+```json
+{"type":"checkbox","title":"Select all that apply","required":false,"options":["Option A","Option B","Option C"]}
+```
+
+```json
+{"type":"rating","title":"Rate this item","required":true,"scaleMax":10}
+```
+
 ## Supported Question Types
 | Type | Fields | Notes |
 |------|--------|-------|
@@ -88,13 +119,13 @@ curl -s -L -X POST "$GFORMS" -H 'Content-Type: application/json' -d '{"action":"
 | `grid` | `title`, `required`, `rows[]`, `cols[]` | Grid table |
 | `email` | `title`, `required` | Email validation |
 
-## Rating Questions (Stars 1-10)
+## Rating Questions
 Google Forms Rating questions use `addRatingItem()`. They support 1–10 levels and three icon styles: STAR, HEART, THUMB_UP.
 
 ```json
 {
   "type": "rating",
-  "title": "Rate your pain (1 = Not at all, 10 = Worst possible)",
+  "title": "Rate this form section",
   "required": true,
   "scaleMax": 10,
   "ratingIcon": "STAR"
