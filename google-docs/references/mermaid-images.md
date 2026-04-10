@@ -18,6 +18,7 @@
 - Importing the original Markdown after already producing `content_no_mermaid`.
 - Using `start_index=1` as a generic anchor instead of the end index of the real heading paragraph.
 - Hiding the doc write behind `nohup` or a background shell process, which makes API failures invisible.
+- Using a short search fragment (e.g. "Context") that matches multiple paragraphs. Use a longer unique substring from the heading, or read the doc structure first and pick the exact `endIndex`.
 
 ## Recommended command
 - `npx --yes @mermaid-js/mermaid-cli@11.4.3 -i input.mmd -o output.png -p /tmp/pp.json`

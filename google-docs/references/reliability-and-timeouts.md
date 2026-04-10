@@ -32,6 +32,14 @@ When a docs workflow fails, follow this order:
 - Match plain text headings in the doc structure; Markdown heading markers disappear during import.
 - Verify success by reading `inlineObjects` from the Docs API, not by relying only on markdown export.
 
+## Batch multi-doc creation
+When creating several docs from a folder of Markdown files:
+- Use `publish_pipeline.py /path/to/folder` for the initial import. It handles large files and retries better than ad-hoc Drive API calls.
+- The pipeline generates titles from filenames: `"architecture.md"` becomes `"Architecture"` (filename.title() with hyphens/underscores replaced by spaces).
+- If you want a different naming convention (e.g. "GL Runner - Architecture"), search for existing docs first to avoid duplicates, or rename after creation with `drive.files().update(fileId=..., body={"name": new_title})`.
+- Import the docs first, then insert Mermaid images in a second pass. Mixing import and image insertion in one script is fine but keep them as separate steps.
+- If direct `MediaIoBaseUpload` times out on a large Markdown file (84KB+), the pipeline script typically succeeds where the one-off call fails.
+
 ## Verification fallback
 If `docs_api.py get <doc_id> --md` times out:
 - use a direct `docs.googleapis.com` client
