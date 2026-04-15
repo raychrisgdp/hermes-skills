@@ -31,6 +31,8 @@
 - Render Mermaid locally with Mermaid CLI before publishing.
 - Use a white background and a high enough scale for Docs readability.
 - Keep the rendered images in a temp directory so the publishing pass is reproducible.
+- Size each render against the remaining page space and the diagram aspect ratio, not just a fixed width.
+- Wide diagrams can be landscape; tall ERDs or long sequences may need a narrower width, a page break, or a split into smaller figures.
 - If Mermaid fails to parse, first inspect the node labels.
 - Quote labels that contain parentheses, slashes, or other punctuation that Mermaid may treat as syntax.
 - If a label needs a line break, prefer a Mermaid-safe form such as a quoted label with a line break that the CLI accepts.

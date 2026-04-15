@@ -226,10 +226,13 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
     file_metadata = {"name": filename}
     mimetype = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
     media = MediaIoBaseUpload(image_data, mimetype=mimetype, resumable=True)
-    result = drive.files().create(body=file_metadata, media_body=media, fields="id").execute(num_retries=5)
+    result = drive.files().create(body=file_metadata, media_body=media, fields="id,webContentLink,thumbnailLink").execute(num_retries=5)
     image_id = result["id"]
+    image_uri = result.get("webContentLink") or result.get("thumbnailLink")
     if not image_id:
         raise ValueError("Could not upload image")
+    if not image_uri:
+        raise ValueError("Could not determine a publicly accessible image URI")
 
     # Get insert position (end of doc if not specified)
     if start_index is None:
@@ -245,7 +248,7 @@ def insert_image(doc_id, image_path_or_url, start_index=None, width_pts=None, he
 
     image_request = {
         "insertInlineImage": {
-            "uri": f"https://drive.google.com/thumbnail?id={image_id}&sz=w1000",
+            "uri": image_uri,
             "location": {"index": start_index},
         }
     }

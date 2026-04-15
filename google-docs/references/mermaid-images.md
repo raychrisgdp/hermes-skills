@@ -33,10 +33,12 @@
 - Do not insert at the raw fence location.
 - Prefer one structure read, then insert all images in reverse order so indices stay stable.
 - If there are multiple Mermaid blocks, insert the last one first so earlier indices do not shift.
-- Make the uploaded image public before inserting it; the Docs API is much more reliable when the thumbnail URI is readable.
+- Make the uploaded image public before inserting it; the Docs API is much more reliable when the Drive file has a readable public URL.
+- Use the full Drive file URL/`webContentLink` when available instead of the low-res thumbnail URL.
 - `width_pts` and `height_pts` are resize hints before upload, not a Docs API object-size flag.
 - When the heading text is imported from Markdown, the `###` markers disappear. Match the plain text heading text in the doc structure instead.
 - After insertion, verify `inlineObjects` in the live Docs API response so you know the image really landed.
+- Size the image against the remaining page space and the diagram aspect ratio; if a diagram would crowd the page, shrink it, split it, or let it start on the next page deliberately.
 
 ## Sizing
 - Keep the image conservative so it fits within the page.
