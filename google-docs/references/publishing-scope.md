@@ -15,3 +15,4 @@
 
 ## Practical check
 - After publishing, inspect the rendered doc and make sure the links point where the user expects.
+- If the source uses images or exported diagrams, confirm the published doc still points at the current asset filenames and not a superseded PNG.

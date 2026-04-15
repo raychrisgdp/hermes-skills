@@ -26,3 +26,4 @@
 ## Verify after import
 - Re-export with `docs_api.py get <doc_id> --md`.
 - Check that headings, tables, code blocks, and links still look right.
+- If the source Markdown contains diagram/image refs, confirm the published doc points at the current exported asset names and not a superseded filename.

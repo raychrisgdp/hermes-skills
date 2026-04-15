@@ -18,6 +18,9 @@
 - Importing the original Markdown after already producing `content_no_mermaid`.
 - Using `start_index=1` as a generic anchor instead of the end index of the real heading paragraph.
 - Hiding the doc write behind `nohup` or a background shell process, which makes API failures invisible.
+- If Mermaid fails to parse, first inspect the node labels.
+- Quote labels that contain parentheses, slashes, or other punctuation that Mermaid may treat as syntax.
+- If a label needs a line break, prefer a Mermaid-safe form such as a quoted label with a line break that the CLI accepts.
 - Using a short search fragment (e.g. "Context") that matches multiple paragraphs. Use a longer unique substring from the heading, or read the doc structure first and pick the exact `endIndex`.
 
 ## Recommended command
@@ -46,4 +49,5 @@
 ## Verify
 - Re-export the doc.
 - Confirm the image is present and the surrounding paragraph flow still makes sense.
+- If the diagram was re-rendered, make sure the doc uses the latest exported image file and not a stale earlier PNG.
 - If a full doc read times out, switch to the reliability notes and avoid repeated full export calls.

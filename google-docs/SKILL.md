@@ -15,6 +15,7 @@ Use this skill for Google Docs creation, publishing, link rewriting, review comm
 - Rewrite internal links to live Google Docs URLs
 - Render Mermaid locally and insert it as inline images, using landscape page sections when a diagram is wide and resizing images before upload
 - Inspect docs after publishing to verify the result
+- Keep diagram/image refs on the current exported filenames so published docs do not drift onto stale assets
 - Manage review comments and reply threads
 
 ## When to use what
@@ -22,6 +23,7 @@ Use this skill for Google Docs creation, publishing, link rewriting, review comm
 - For publish scope and cross-links: `references/publishing-scope.md`
 - For Markdown import/update behavior: `references/markdown-pipeline.md`
 - For Mermaid and image insertion: `references/mermaid-images.md`
+- For deterministic doc sync with diagrams: `references/deterministic-sync.md`
 - For comments and review threads: `references/review-comments.md`
 - For reliability, timeouts, and the support path: `references/reliability-and-timeouts.md`
 - For exact shell commands: `references/command-recipes.md`
