@@ -68,11 +68,43 @@ def build_service(api, version):
 # Strategy (3 batchUpdate calls total):
 # 1. Insert all text with `insertText`.
 # 2. Read the document to find exact paragraph positions, then:
-#    a. Apply heading paragraph styles (HEADING_1 etc.)
+#    a. Apply heading paragraph styles with Markdown offset mapping:
+#       # -> TITLE, ## -> HEADING_1, ### -> HEADING_2, ...
 #    b. Delete "# " prefix characters via deleteContentRange
 #    (all in ONE batchUpdate call per operation - no per-paragraph
 #    round-trips)
 # ===========================================================
+
+def _style_for_markdown_heading_level(level: int) -> str:
+    """Map Markdown heading depth to Google Docs named style.
+
+    Mapping rule requested by user:
+    - #       -> TITLE
+    - ##      -> HEADING_1
+    - ###     -> HEADING_2
+    - ####    -> HEADING_3
+    - #####   -> HEADING_4
+    - ######  -> HEADING_5
+    """
+    if level <= 1:
+        return "TITLE"
+    if level <= 6:
+        return f"HEADING_{level - 1}"
+    return "HEADING_6"
+
+
+def _markdown_prefix_for_named_style(style: str) -> str:
+    """Inverse mapping from Docs named style to Markdown heading prefix."""
+    if style == "TITLE":
+        return "# "
+    if style.startswith("HEADING_"):
+        try:
+            n = int(style.split("_")[1])
+        except Exception:
+            return ""
+        return "#" * (n + 1) + " "
+    return ""
+
 
 def _apply_heading_styles(doc_id):
     """Style paragraphs starting with #/##/### and delete prefixes.
@@ -106,7 +138,7 @@ def _apply_heading_styles(doc_id):
         style_reqs.append({
             "updateParagraphStyle": {
                 "range": {"startIndex": s, "endIndex": e - 1},
-                "paragraphStyle": {"namedStyleType": f"HEADING_{level}"},
+                "paragraphStyle": {"namedStyleType": _style_for_markdown_heading_level(level)},
                 "fields": "namedStyleType",
             }
         })
@@ -241,10 +273,10 @@ def _apply_inline_styles(doc_id):
             if not elements:
                 continue
 
-            # Skip HEADING paragraphs — their ** markers are intentional bold
+            # Skip heading/title paragraphs — their ** markers are intentional
             # heading text, not markdown to convert.
             nst = para.get("paragraphStyle", {}).get("namedStyleType", "")
-            if nst.startswith("HEADING_"):
+            if nst == "TITLE" or nst.startswith("HEADING_"):
                 continue
 
             full_text = "".join(e.get("textRun", {}).get("content", "") for e in elements)
@@ -442,12 +474,18 @@ def _parse_inline_md(text: str):
 
 
 def _clear_document(doc_id):
-    """Delete all paragraph content in a single batchUpdate call (reverse order)."""
+    """Delete all paragraph content safely from bottom to top.
+
+    Docs batchUpdate applies edits in order, so a single batch with many
+    deleteContentRange requests can still shift indices and fail on later
+    deletions. Execute each delete in its own batchUpdate call.
+    """
     docs = build_service("docs", "v1")
     doc = docs.documents().get(documentId=doc_id).execute(num_retries=5)
     content = doc.get("body", {}).get("content", [])
     if len(content) <= 1:
         return
+
     del_reqs = []
     for el in reversed(content):
         if "paragraph" not in el:
@@ -455,14 +493,15 @@ def _clear_document(doc_id):
         start = el.get("startIndex", 0)
         end = el.get("endIndex", 0)
         if end - start - 1 > 0:
-            del_reqs.append({
-                "deleteContentRange": {
-                    "range": {"startIndex": start, "endIndex": end - 1}
-                }
-            })
-    if del_reqs:
+            del_reqs.append((start, end - 1))
+
+    for start, end in del_reqs:
         docs.documents().batchUpdate(documentId=doc_id, body={
-            "requests": del_reqs
+            "requests": [{
+                "deleteContentRange": {
+                    "range": {"startIndex": start, "endIndex": end}
+                }
+            }]
         }).execute(num_retries=5)
 
 
@@ -483,10 +522,7 @@ def doc_to_markdown(doc: dict) -> str:
 
 def _render_paragraph(para: dict) -> str:
     style = para.get("paragraphStyle", {}).get("namedStyleType", "")
-    heading = ""
-    if style.startswith("HEADING_"):
-        level = style.split("_")[1]
-        heading = "#" * int(level) + " "
+    heading = _markdown_prefix_for_named_style(style)
 
     bullet = para.get("bullet", {})
     bp = ""

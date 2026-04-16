@@ -23,6 +23,14 @@
 - If a publish path needs element-level control, re-read the doc after import and then style against real indices.
 - Do not assume Markdown positions survive the import unchanged.
 
+## Heading mapping policy
+- In the `docs_api.py` markdown population path, heading mapping is:
+  - `#` -> `TITLE`
+  - `##` -> `HEADING_1`
+  - `###` -> `HEADING_2`
+  - and so on.
+- If you use raw Drive `text/markdown` import instead, Google defaults to `#` -> `HEADING_1`. Run a post-pass if you need `#` to be title semantics.
+
 ## Verify after import
 - Re-export with `docs_api.py get <doc_id> --md`.
 - Check that headings, tables, code blocks, and links still look right.
