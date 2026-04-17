@@ -1,21 +1,19 @@
 ---
 name: architecture-diagram
-description: Generate professional dark-themed system architecture diagrams as standalone HTML/SVG files. Self-contained output with no external dependencies. Based on Cocoon AI's architecture-diagram-generator (MIT).
-version: 1.1.0
-author: Cocoon AI (hello@cocoon-ai.com), ported by Hermes Agent
+description: Generate professional architecture diagrams as standalone HTML/SVG files using the GDP Labs visual style guide. Light background, semantic 5-group color system, Inter font. Self-contained with no external dependencies.
+version: 2.0.0
+author: GDP Labs, adapted by Hermes Agent
 license: MIT
 dependencies: []
 metadata:
   hermes:
     tags: [architecture, diagrams, SVG, HTML, visualization, infrastructure, cloud]
-    related_skills: [excalidraw]
+    related_skills: [excalidraw, mermaid-diagram]
 ---
 
 # Architecture Diagram Skill
 
-Generate professional, dark-themed technical architecture diagrams as standalone HTML files with inline SVG graphics. No external tools, no API keys, no rendering libraries — just write the HTML file and open it in a browser.
-
-Based on [Cocoon AI's architecture-diagram-generator](https://github.com/Cocoon-AI/architecture-diagram-generator) (MIT).
+Generate professional technical architecture diagrams as standalone HTML files with inline SVG graphics. Uses the GDP Labs visual style guide — light background, semantic color groups, Inter font. No external tools, no API keys, no rendering libraries — just write the HTML file and open it in a browser.
 
 ## Workflow
 
@@ -79,58 +77,100 @@ google-chrome --headless --screenshot=diagram.png --window-size=1200,900 \
 
 ## Design System & Visual Language
 
-### Color Palette (Semantic Mapping)
+Based on the GDP Labs Diagram Color Guide. This is the canonical style — do not mix with other palettes.
 
-Use specific `rgba` fills and hex strokes to categorize components:
+### Color System: 5 Semantic Groups
 
-| Component Type | Fill (rgba) | Stroke (Hex) |
+Every node uses one of these five color families. Pick the group that matches the component's role:
+
+| Group | Fill | Border | Semantic Meaning |
+| :--- | :--- | :--- | :--- |
+| **Blue** | `#E8F5FB` | `#00A0DF` | Primary active components — process steps, APIs, services |
+| **Green** | `#EAF2EA` | `#4CAF7D` | Product boundaries — container fill for owned subsystems |
+| **Amber** | `#FFF3E0` | `#F5A623` | Surface/helper steps — SDK, intake, routing |
+| **Purple** | `#F0EBF9` | `#7C4DCC` | Supporting/integration capabilities — connectors, external adapters |
+| **Rose** | `#FFE9EE` | `#E05C7A` | Runnable/workload layers — execution plane, worker containers |
+| **Gray** | `#E8EEF4` | `#8FA3B1` | Stores / neutral support — databases, object stores, queues |
+
+**Default rule:** If no override applies, use Blue. No further thinking required.
+
+### Node Color Override Decision Tree
+
+Only override from Blue when one of these is true:
+
+| Question | Color | Why |
 | :--- | :--- | :--- |
-| **Frontend** | `rgba(8, 51, 68, 0.4)` | `#22d3ee` (cyan-400) |
-| **Backend** | `rgba(6, 78, 59, 0.4)` | `#34d399` (emerald-400) |
-| **Database** | `rgba(76, 29, 149, 0.4)` | `#a78bfa` (violet-400) |
-| **AWS/Cloud** | `rgba(120, 53, 15, 0.3)` | `#fbbf24` (amber-400) |
-| **Security** | `rgba(136, 19, 55, 0.4)` | `#fb7185` (rose-400) |
-| **Message Bus** | `rgba(251, 146, 60, 0.3)` | `#fb923c` (orange-400) |
-| **External** | `rgba(30, 41, 59, 0.5)` | `#94a3b8` (slate-400) |
+| Is it a START or END terminal? | Navy Dark `#1A3F6F` | Entry/exit — use oval shape |
+| Is it a human review or gate? | Charcoal `#1A202C` | Human steps must never look automated |
+| Is it an error or rejection path? | Pink `#CA54B0` | Immediate "something wrong" signal |
+| Is it the single most important CTA? | Navy `#306FB7` | Max 1–2 nodes per diagram |
+| Is it inactive / future / disabled? | Light Gray `#E8EEF4` | Dark text on this fill. Recedes visually |
 
-**Brighter alternative palette** (use hex fills instead of rgba for more vivid, readable boxes — especially when the double-rect masking technique makes rgba look too dark):
+### Container / Boundary Styling
 
-| Component Type | Fill (Hex) | Stroke (Hex) |
+Use colored containers to group components by plane or ownership:
+
+| Container Purpose | Fill | Border | Text |
+| :--- | :--- | :--- | :--- |
+| Client / Surface layer | `#E8F5FB` (Blue tint) | `#00A0DF` | Navy `#1A202C` |
+| Control Plane / Server | `#EAF2EA` (Green tint) | `#4CAF7D` | Navy `#1A3F6F` |
+| Execution Plane / Worker | `#FFE9EE` (Rose tint) | `#E05C7A` | Charcoal `#1A202C` |
+| External / Integration | `#F0EBF9` (Purple tint) | `#7C4DCC` | Charcoal `#1A202C` |
+
+### Dashed Box Semantics
+
+Use dashed containers only when semantically needed:
+
+| Style | Border | Meaning |
 | :--- | :--- | :--- |
-| **Frontend/API** | `#155e75` | `#22d3ee` |
-| **Backend (Server)** | `#065f46` | `#34d399` |
-| **Backend (Worker)** | `#155e75` | `#22d3ee` |
-| **Database/Storage** | `#4c1d95` | `#a78bfa` |
-| **Cloud/Infra** | `#92400e` | `#fbbf24` |
-| **Security** | `#881337` | `#fb7185` |
-| **External** | `#334155` | `#94a3b8` |
+| Planned / Future | Mid Gray `#8FA3B1` dashed | Coming soon — not yet built |
+| Expandable / Has sub-diagram | Navy Dark `#1A3F6F` dashed | Internals shown in separate detail diagram |
+| Out of Scope | Mid Gray `#8FA3B1` dot-dash | Exists but outside this diagram's scope |
+| Error / Failure Zone | Pink `#CA54B0` dashed | Grouping error-handling nodes |
 
-### Typography & Background
-- **Font:** JetBrains Mono (Monospace), loaded from Google Fonts
-- **Sizes:** 12px (Names), 9px (Sublabels), 8px (Annotations), 7px (Tiny labels)
-- **Background:** Slate-950 (`#020617`) with a subtle 40px grid pattern
+Rule: dashed = content is incomplete, external, or expandable. Solid = fully defined and in-scope.
 
-```svg
-<!-- Background Grid Pattern -->
-<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
-</pattern>
-```
+### Connector Lines
+
+| Line Type | Color | Width | Style | When to Use |
+| :--- | :--- | :--- | :--- | :--- |
+| Primary forward flow | Sky Blue `#00A0DF` | 2pt | Solid | Default for all forward connections |
+| Secondary / branch | Sky Blue `#00A0DF` | 1pt | Solid | Spine connectors, branch distributors |
+| Feedback / retry loop | Navy Dark `#1A3F6F` | 1.5pt | Dashed | Flow going backward or looping back |
+| Optional / informational | Mid Gray `#8FA3B1` | 1.2pt | Dashed | Non-critical path, reference only |
+| Async / event-triggered | Sky Blue `#00A0DF` | 1.2pt | Dot-dash | Non-sequential, event-driven trigger |
+| Error / rejection flow | Pink `#CA54B0` | 2pt | Solid | Only for error/reject node connections |
+
+Rule: solid = intentional, forward, active. Dashed = backward, optional, or async. Color always matches the node it originates from.
+
+### Typography
+- **Font:** Inter (primary), loaded from Google Fonts
+- **Title on container:** 12px, bold, Charcoal `#1A202C` or Navy `#1A3F6F`
+- **Node title:** 13px, semibold, Charcoal `#1A202C` on light fills / White `#FFFFFF` on dark fills
+- **Node subtitle:** 10px, regular, Mid Gray `#8FA3B1`
+- **Legend text:** 11px, regular, Charcoal `#1A202C`
+- **Caption / helper:** Mid Gray `#8FA3B1` on white
+
+### Background
+- **White** `#FFFFFF` — no grid, no dark background
+- Container boxes use tinted fills from their semantic group
+- Node boxes use lighter tinted fills from their semantic group
+- All boxes: rounded corners `rx="6"`, 1.5px border stroke
 
 ## Technical Implementation Details
 
 ### Component Rendering
-Components are rounded rectangles (`rx="6"`) with 1.5px strokes. To prevent arrows from showing through semi-transparent fills, use a **double-rect masking technique**:
-1. Draw an opaque background rect (`#0f172a`)
-2. Draw the semi-transparent styled rect on top
+Components are rounded rectangles (`rx="6"`) with 1.5px strokes. Use the semantic fill + border from the 5-group color system. No double-rect masking needed — fills are opaque pastels, not semi-transparent.
 
 ### Connection Rules
-- **Z-Order:** Draw arrows *early* in the SVG (after the grid) so they render behind component boxes
-- **Arrowheads:** Defined via SVG markers
-- **Security Flows:** Use dashed lines in rose color (`#fb7185`)
+- **Z-Order:** Draw arrows *after* container backgrounds but *before* node boxes so arrows sit behind components
+- **Arrowheads:** Defined via SVG markers. Use one consistent marker geometry across all arrows; only change color by flow type
+- **Arrow termination:** Arrows must end at box edges, never mid-canvas or inside box content
+- **Security Flows:** Use dashed lines in Pink `#CA54B0` for auth/error paths
 - **Boundaries:**
-  - *Security Groups:* Dashed (`4,4`), rose color
-  - *Regions:* Large dashed (`8,4`), amber color, `rx="12"`
+  - *Product containers:* Solid fill with semantic group color (Green for server, Rose for worker)
+  - *Planned/Future:* Dashed Mid Gray `#8FA3B1` border
+  - *Expandable (sub-diagram):* Dashed Navy Dark `#1A3F6F` border
 
 ### Spacing & Layout Logic
 - **Standard Height:** 60px (Services); 80-120px (Large components)
@@ -196,61 +236,11 @@ For architecture/internal diagrams, verify labels against `architecture.md` and 
 ### SVG marker IDs
 When multiple `<marker>` defs exist on the same page (e.g., different arrowhead colors), use unique IDs like `ah`, `ah-rose`, `ah-amber` to avoid collisions. Same-page SVG elements share a global ID namespace.
 
-## GDP Labs UI/UX Diagram Style Guide (Preferred)
+## GDP Labs Practical Composition Rules
 
-When the user asks for GDP Labs-style diagrams (or provides color-guide references), follow this style guide over generic defaults.
+The canonical color/connector/box rules are in the Design System section above. These are additional practical rules from production use.
 
-### ① Color semantics (node fills)
-
-Use one semantic color per role group, and keep the same color for all nodes in that same role.
-
-- Default/general process nodes: `Sky Blue #00A0DF`
-- Start/End terminals: `Navy Dark #1A3F6F`
-- Human review/gates: `Charcoal #1A202C`
-- Error/reject nodes and paths: `Pink #CA54B0`
-- High-emphasis key node (max 1-2): `Navy #306FB7`
-- Inactive/future/disabled: `Light Gray #E8EEF4` with text `#1A202C`
-
-If none of the override conditions apply, use **Sky Blue**.
-
-### ② Override decision rule
-
-Only override from Sky Blue when one of these is true:
-1. Start/End terminal -> `#1A3F6F`
-2. Human-in-the-loop gate -> `#1A202C`
-3. Error/rejection path -> `#CA54B0`
-4. Single key CTA/emphasis node -> `#306FB7` (max 1-2 nodes)
-5. Inactive/future node -> `#E8EEF4` with dark text
-
-### ③ Connector line rules
-
-- Main forward flow: solid Sky Blue, 2px
-- Secondary/branch spine: solid Sky Blue, 1px
-- Error/reject flow: solid Pink, 2px
-- Feedback/retry loop: dashed Navy Dark, ~1.5px
-- Optional/info path: dashed Mid Gray `#8FA3B1`, ~1.2px
-- Async/event-triggered: dot-dash Sky Blue, ~1.2px
-
-Rule: solid = active forward flow. Dashed/dot-dash = loop/optional/async semantics.
-
-### ④ Dashed box/container semantics
-
-Use dashed containers only when semantically needed:
-- Planned/future scope: Mid Gray dashed
-- Expandable/has detail sub-diagram: Navy Dark dashed
-- Out of scope: Mid Gray dot-dash
-- Error/failure zone: Pink dashed
-
-For normal in-scope system layers, prefer solid or lightly styled group containers, not heavy dashed noise everywhere.
-
-### ⑤ Typography/contrast hierarchy
-
-- White text `#FFFFFF` on dark/saturated node fills
-- Body text on white/light cards: `Charcoal #1A202C`
-- Secondary captions: `#8FA3B1`
-- Use strong heading contrast and keep sublabels lighter and smaller
-
-### ⑥ Practical composition rules
+### ⑥ Composition rules
 
 - Keep arrows centered on source/target boxes
 - Avoid crossing lines whenever possible (re-layout first, reroute second)
