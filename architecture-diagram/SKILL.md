@@ -2,7 +2,7 @@
 name: architecture-diagram
 description: Generate professional architecture diagrams as standalone HTML/SVG files using the GDP Labs visual style guide. Light background, semantic 5-group color system, Inter font. Self-contained with no external dependencies.
 version: 2.0.0
-author: GDP Labs, adapted by Hermes Agent
+author: GDP Labs
 license: MIT
 dependencies: []
 metadata:
