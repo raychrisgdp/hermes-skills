@@ -22,8 +22,16 @@ Real production diagrams are in `templates/`:
 - `reference-architecture.html` — GL Runner internal architecture (control plane + execution plane)
 - `reference-design-stack.html` — GL Runner design stack view (plugged implementations)
 - `reference-ecosystem.html` — GL Runner ecosystem (GDP Labs platform context)
+- `sample-agent-workflow.html` — PDF sample flowchart demonstrating all color overrides (HTML/SVG)
+- `sample-agent-workflow.md` — Same sample as Mermaid with classDef mappings
 
-These are the source of truth for visual conventions. Use them as structural references, not the generic template.
+The sample agent workflow demonstrates every color override from the PDF:
+- Sky Blue default for all process steps
+- Navy Dark oval for START/END terminals
+- Charcoal for human Review Gates
+- Pink for error/rejection path
+- Navy for the key CTA (Merge Results)
+- Dashed Navy Dark for retry loops
 
 ## Color System
 
