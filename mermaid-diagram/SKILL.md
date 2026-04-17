@@ -644,6 +644,50 @@ When improving diagrams for an existing PR or repo, verify before committing:
 - Before publishing Mermaid-heavy docs to Google Docs, render every Mermaid block locally with `mermaid-cli` and confirm the images are valid. This catches layout failures earlier and makes the later Docs image insertion step much more predictable.
 - When doing bulk diagram rewrites, review the rendered markdown around each edited block for accidental leftover lines after closing fences. A common failure mode is leaving stale lines from the previous diagram body below the new fenced block.
 
+## PR 33 Production Learnings (GL Runner)
+
+Lessons from creating 7 diagram pairs across architecture, design, deployment, and implementation docs.
+
+### Format Decision Lens
+
+PR 33 confirmed a clear split between HTML→PNG and Mermaid:
+
+| Diagram Intent | Format | Why |
+| :--- | :--- | :--- |
+| Polished architectural/block/topology | HTML → PNG | Straight arrows, layout precision |
+| Temporal/runtime/process flows | Mermaid sequence | Time-ordered, text-source maintainability |
+| Schema/state semantics | Mermaid ERD / state | Structured relationships, compact |
+| Simple conceptual support | Mermaid flowchart | Text maintainability > presentation |
+
+Rule: if a Mermaid diagram has 10+ nodes with nested subgraphs and keeps fighting the renderer, convert it to HTML→PNG. The layout instability means the tool choice is wrong.
+
+### Terminology Alignment Issues Found
+
+These were caught across diagrams and docs during PR 33:
+
+- `SDK` in ecosystem vs `GL Runner SDK` in docs — normalize to `GL Runner SDK`
+- `internal structure` vs `Internal Architecture` — use `GL Runner Internal Architecture`
+- `ConnectorClient` removed from scope — purge from all diagrams if removed from docs
+- `GL Connectors SDK` confused with `GL Connectors` service — clarify: SDK is in-process library, service is external boundary
+- `mirror` label for design stack diagram — rename to "Tech Stack" or "Default Stack Choices"
+- CLI shown as first-class surface when docs say it's later — apply dashed-border treatment to signal future status
+
+### Arrow Routing Anti-Patterns
+
+- **Three parallel arrows where one suffices** — visual noise. Use one representative arrow.
+- **Arrow routing through box content** — reroute through center gutters; connectors must never pass through a component.
+- **Arrow from center of parent to child** — originate from the specific child box, not the parent boundary center.
+- **Arrow ending mid-canvas** — arrows should terminate at box edges, not empty space.
+
+### Google Docs Rendering Workflow
+
+When diagrams go into Google Docs:
+1. Render Mermaid to PNG locally with `mermaid-cli` first — do not trust GDocs Mermaid rendering
+2. Insert images with explicit width points (480pt portrait, 680pt landscape for primary figures)
+3. Never rely on GDocs auto-sizing — it produces blurry or cropped results
+4. After Drive markdown import, remap headings: `#` → Title, `##` → Heading 1, etc.
+5. Apply landscape section breaks at paragraph-safe boundaries only (never inside tables)
+
 ## When adapting an existing diagram set
 
 If a repo already has some strong diagrams:

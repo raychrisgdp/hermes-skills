@@ -319,6 +319,100 @@ When maintaining multiple related diagrams (e.g., ecosystem + internal), enforce
 - When you update doc image refs, delete superseded PNGs so the markdown cannot drift back to stale assets.
 - Place legends outside all boundary boxes, and verify the lowest boundary Y before finalizing.
 
+## PR 33 Production Learnings (GL Runner)
+
+Lessons from creating and iterating 7 diagram pairs (HTML+PNG) across architecture, design, deployment, and implementation docs.
+
+### 5-Group Semantic Color System
+
+The GDP Labs palette was expanded to 5 semantic groups after PR 33 found that too many components sharing one saturated blue reduced readability:
+
+| Color | Fill (Hex) | Border (Hex) | Semantic Meaning |
+| :--- | :--- | :--- | :--- |
+| Blue | `#E8F5FB` | `#00A0DF` | Primary active components |
+| Green | `#EAF2EA` | `#4CAF7D` | Product boundaries |
+| Amber | `#FFF3E0` | `#F5A623` | Surface/helper steps |
+| Purple | `#F0EBF9` | `#7C4DCC` | Supporting/integration capabilities |
+| Rose | `#FFE9EE` | `#E05C7A` | Runnable/workload layers |
+| Gray | `#E8EEF4` | `#8FA3B1` | Stores / neutral support |
+
+Mermaid `classDef` mapping:
+```
+classDef active fill:#00A0DF,stroke:#008FC8,color:#FFFFFF,stroke-width:1.5px;
+classDef surface fill:#FFF3E0,stroke:#F5A623,color:#1A202C,stroke-width:1.5px;
+classDef boundary fill:#EAF2EA,stroke:#4CAF7D,color:#1A3F6F,stroke-width:1.5px;
+classDef support fill:#F0EBF9,stroke:#7C4DCC,color:#1A202C,stroke-width:1.5px;
+classDef store fill:#E8EEF4,stroke:#8FA3B1,color:#1A202C,stroke-width:1.5px;
+```
+
+OSS/external dependencies: use dashed borders on the same color family to differentiate from GL-owned components.
+
+### Rendering Pipeline (HTML → PNG)
+
+**Export wrapper rules:**
+- White background only, zero outer body padding
+- Use `width: max-content` or `inline-block` wrapper to avoid browser responsive behavior
+- Intentional internal spacing (header padding, bordered card) is fine; stray outer margins are not
+
+**Viewport sizing for PNG export:**
+- Ecosystem: ~2240 x 1528
+- Architecture: ~2640 x 1984
+- Design stack: ~2640 x 1984
+- Deployment: ~2720 x 2192
+- C4 System Context: 5644 x 2622
+- Rule: export at ~2x resolution for downscaling in Google Docs
+
+**HTML diagram defaults:**
+- Font: Inter (or JetBrains Mono for dark-themed standalone)
+- White background with square-cornered grouping boxes
+- `width: max-content` on the wrapper div
+- Fixed SVG export dimensions (not `min-height: 100vh`)
+
+### Google Docs Integration
+
+**Heading mapping after Drive markdown import:**
+- `#` → Title (not Heading 1)
+- `##` → Heading 1
+- `###` → Heading 2
+- `####` → Heading 3
+- Requires a post-import heading remap pass
+
+**Image insertion widths:**
+- Portrait docs: 480 pt for primary architectural figures
+- Landscape docs: 680 pt
+- Medium support figures: 420–460 pt portrait / 560–620 pt landscape
+- Small support diagrams: 320–400 pt portrait / 420–520 pt landscape
+- Rule: high-res source + controlled page-fit insertion = crisp result. Never upscale weak images, never rely on GDocs auto-sizing.
+
+**Section orientation:**
+- Portrait by default
+- Landscape only for selected wide sections (e.g., lifecycle, large diagrams)
+- Apply landscape at paragraph-safe boundaries (not inside tables)
+
+### Format Decision Lens
+
+Use this to decide which diagram format to use:
+
+| Diagram Intent | Format | Why |
+| :--- | :--- | :--- |
+| Polished architectural/block/topology views | HTML → PNG | Straight arrows, layout precision, presentation quality |
+| Temporal/runtime/process flows | Mermaid sequence | Time-ordered readability, text-source maintainability |
+| Schema/state semantics | Mermaid ERD / state | Structured relationships, compact representation |
+| Simple conceptual support | Mermaid flowchart | When text-source maintainability > polished presentation |
+
+Anti-pattern: using Mermaid for dense structural diagrams (10+ nodes, nested subgraphs) — layout fights with renderers. Convert those to HTML→PNG.
+
+### Anti-Patterns Discovered in PR 33
+
+1. **Three parallel arrows where one representative suffices** — visual noise without semantic gain. Use one arrow with a representative label.
+2. **Stale diagrams left in docs** — if a diagram was replaced by a better version, delete the old one in the same pass.
+3. **Local `.html` paths in Markdown prose** — breaks Google Docs sync. Only reference `.png` assets in prose.
+4. **Renderer-specific wording in docs** — e.g., "For Markdown and docx rendering..." — remove; the diagram stands on its own.
+5. **Dense implementation blueprint as Mermaid** — too many subgraphs for renderer stability. Convert to HTML→PNG.
+6. **Diagram-text drift** — deployment arrows showed dependencies that contradicted docs. Always cross-check diagrams against surrounding prose before publishing.
+7. **Arrow routing through box content** — reroute through center gutters; connectors should never visually pass through a component box.
+8. **CLI shown as first-class surface when docs say it's later** — apply dashed-border treatment to signal maturity/future status.
+
 ## Output Requirements
 - **Single File:** One self-contained `.html` file
 - **No External Dependencies:** All CSS and SVG must be inline (except Google Fonts)
