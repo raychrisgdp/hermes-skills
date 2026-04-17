@@ -84,6 +84,29 @@ For architecture diagrams: containers get the tinted fill, inner nodes get Sky B
 
 Rule: solid = forward/active. Dashed = backward/optional/async. Color matches the originating node.
 
+## Arrow Routing Rules
+
+### No crossing lines
+- Avoid arrows crossing over boxes or other arrows whenever possible
+- Re-layout first (move boxes), reroute second (change arrow paths)
+- If crossing is unavoidable, the crossing arrow should be dashed (visually subordinate)
+
+### Straight and orthogonal arrows only
+- Prefer straight horizontal or vertical arrows (direct, single-segment)
+- If a straight path is blocked, use orthogonal paths (horizontal + vertical only, no diagonals)
+- Never use curved or rounded arrows — they look imprecise and break visual rhythm
+- Multi-segment orthogonal paths should have clean 90-degree corners
+
+### Edge routing
+- Route long return/event arrows around the outside of component clusters, not through them
+- Enter the target near its boundary edge, not through the middle of a dense cluster
+- Keep arrow lengths proportional — a 10-segment detour arrow looks broken
+
+### Arrow anchoring
+- Arrows must terminate at box edges, never mid-canvas or inside box content
+- Center arrows on source/target box centers
+- If arrows "look off" visually, check numeric center alignment first
+
 ---
 
 # Typography
@@ -190,9 +213,9 @@ Use for source-editable diagrams in markdown — sequences, ERDs, state diagrams
 
 ## classDef Mappings
 
-```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif", "fontSize": "14px"}}}%%
+Use these `classDef` lines at the top of your Mermaid diagram. Do NOT wrap them in `%%{init:...}%%` — GitHub does not support init blocks.
 
+```
 classDef default fill:#00A0DF,stroke:#00A0DF,color:#FFFFFF,stroke-width:2px
 classDef terminal fill:#1A3F6F,stroke:#1A3F6F,color:#FFFFFF,stroke-width:2px
 classDef human fill:#1A202C,stroke:#1A202C,color:#FFFFFF,stroke-width:2px
@@ -294,3 +317,6 @@ Rule: if you keep fighting the renderer, the tool choice is wrong.
 6. Do not mix node fills and container tints — containers are pale, nodes are saturated
 7. Do not leave stale diagrams after replacing them
 8. Do not reference `.html` paths in markdown — use `.png` only
+9. Do not use curved or rounded arrows — straight and orthogonal only
+10. Do not let arrows cross over boxes — re-layout or reroute
+11. Do not use `%%{init:...}%%` blocks in Mermaid — GitHub rejects them
