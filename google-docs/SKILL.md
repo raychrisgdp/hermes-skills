@@ -110,6 +110,7 @@ Use background execution with `notify_on_complete=true` to avoid shell timeouts:
 - If the user wants one final compiled doc family, update the source Markdown first, then republish from that source so every exported doc inherits the final URLs instead of leaving `.md` links behind.
 - After rewriting, verify the source tree has no remaining intra-family `.md` links before uploading; a quick regex scan is enough.
 - When the docs have already been published and only links need correction, update the live docs in place with Docs API text-style link rewrites instead of republishing everything from scratch.
+- For surgical edits to an existing live Google Doc, prefer targeted in-place replacement over republishing the full document. Read the live structure, identify a unique placeholder or anchor text, use `replaceAllText` for the visible-text swap, then verify both the replacement count and the surrounding section text.
 - Before publishing a diagram family, render each Mermaid fence from the source Markdown individually. Fix parse/layout issues in the source block first; don't try to compensate in Google Docs.
 - When picking image size, use page-space-aware sizing rather than a fixed width. Wide flow diagrams can often take full width, while tall ERDs and roadmaps may need a narrower placement or a deliberate page break.
 - If the current page has little remaining space, it can be better to let the next figure start on the next page than to force a cramped insert.
@@ -144,4 +145,3 @@ Use background execution with `notify_on_complete=true` to avoid shell timeouts:
 - If the existing Google Doc is visibly malformed or flattened, create a fresh doc ID instead of trying to salvage the broken import in place.
 - For diagram-heavy docs, import stripped Markdown first, then insert rendered Mermaid or image assets inline after stable heading anchors. Validate by re-exporting and checking that no Mermaid fences remain and the inline image count matches the source diagrams.
 - When matching insertion anchors, normalize headings by stripping `#`, numeric list prefixes, bullet markers, backticks, and extra whitespace before searching the imported doc.
-

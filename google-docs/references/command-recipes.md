@@ -129,6 +129,39 @@ The Drive import renders the title as HEADING_1, not a separate doc title field.
 2. `replaceAllText` on the old HEADING_1 text — updates the visible heading in the doc
 Both are needed; one does not cover the other.
 
+## Replace a specific live-doc section in place
+Use this when the user wants to edit one section of an existing Google Doc without republishing the whole document.
+
+Preferred workflow:
+1. Read the live doc first and confirm the exact anchor text already present in the document.
+   - Best case: a unique placeholder such as `(please insert here)` under a known heading.
+2. Replace only that exact visible text with `replaceAllText`.
+3. Verify that the replacement happened exactly once.
+4. Re-read the nearby section to confirm the new content landed under the intended heading.
+
+Example request body:
+
+```json
+{
+  "requests": [
+    {
+      "replaceAllText": {
+        "containsText": {
+          "text": "(please insert here)",
+          "matchCase": true
+        },
+        "replaceText": "1. First item\n2. Second item"
+      }
+    }
+  ]
+}
+```
+
+Notes:
+- This is for visible text replacement only. It does not update links, smart chips, or other structured objects.
+- Do not use blind replacement when the marker text appears more than once. Make the anchor unique first or switch to a range-based edit workflow.
+- For recurring operational docs, keep a stable placeholder or marker so later section refreshes stay deterministic.
+
 ## Page numbers in footer
 The Docs API cannot insert dynamic page number fields (e.g. "X of Y") programmatically. Must be done manually: Insert > Page numbers > pick the "X of Y" layout.
 
