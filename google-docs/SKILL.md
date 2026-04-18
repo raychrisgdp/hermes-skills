@@ -2,7 +2,7 @@
 name: google-docs
 description: Create, edit, and publish Google Docs with professional formatting, tables, and internal links using natural language.
 tags: ["Google", "Docs", "Writing", "Publishing"]
-version: 4.3.3
+version: 1.1
 ---
 
 # Publishing Scope

@@ -2,7 +2,7 @@
 name: google-forms
 description: Create and manage Google Forms via Google Apps Script Web App.
 tags: ["Google", "Forms", "Automation"]
-version: 3.1.0
+version: 1.1
 ---
 
 # Google Forms Skill
