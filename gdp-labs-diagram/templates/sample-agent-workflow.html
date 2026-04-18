@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GDP Labs — Agent Workflow Sample</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #FFFFFF; width: max-content; height: max-content; overflow: hidden; }
+    body { font-family: Inter, sans-serif; padding: 0; color: #1A202C; display: inline-block; }
+    .container { display: inline-block; margin: 0; background: #FFFFFF; }
+    .header { margin-bottom: 8px; padding: 10px 10px 0 10px; }
+    h1 { font-size: 38px; color: #1A3F6F; font-weight: 700; text-align: center; }
+    .subtitle { color: #4A5568; font-size: 17px; text-align: center; margin-top: 8px; }
+    .diagram-wrap { background: #FFFFFF; border: 1px solid #D9E2EC; border-radius: 10px; padding: 10px 10px 4px 10px; }
+    svg { display: block; }
+    line, path { stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Agent Workflow — Sample Flow</h1>
+    <p class="subtitle">GDP Labs color guide: default Sky Blue, with terminal/error/human/emphasis overrides</p>
+  </div>
+
+  <div class="diagram-wrap">
+    <svg width="2800" height="1200" viewBox="0 0 1400 600">
+
+      <defs>
+        <!-- Arrow markers by color -->
+        <marker id="ah-blue" markerWidth="7" markerHeight="5" refX="6.2" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#00A0DF" />
+        </marker>
+        <marker id="ah-pink" markerWidth="7" markerHeight="5" refX="6.2" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#CA54B0" />
+        </marker>
+        <marker id="ah-navy" markerWidth="7" markerHeight="5" refX="6.2" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#1A3F6F" />
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#FFFFFF" />
+
+      <!-- ═══ ROW 1: START → Intake → Valid? ═══ -->
+
+      <!-- START (oval, Navy Dark — terminal) -->
+      <ellipse cx="80" cy="60" rx="55" ry="28" fill="#1A3F6F" stroke="#1A3F6F" stroke-width="2" />
+      <text x="80" y="65" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">START</text>
+
+      <!-- Arrow: START → Intake -->
+      <line x1="135" y1="60" x2="180" y2="60" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Intake & Validation (Sky Blue — default) -->
+      <rect x="180" y="32" width="160" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="260" y="56" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Intake &amp;</text>
+      <text x="260" y="74" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Validation</text>
+
+      <!-- Arrow: Intake → Valid? -->
+      <line x1="340" y1="60" x2="390" y2="60" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Valid? (decision diamond, Sky Blue) -->
+      <polygon points="470,20 530,60 470,100 410,60" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="470" y="65" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Valid?</text>
+
+      <!-- Arrow: Valid? → No → Return Error (Pink — error path) -->
+      <line x1="470" y1="100" x2="470" y2="150" stroke="#CA54B0" stroke-width="2.4" marker-end="url(#ah-pink)" />
+      <text x="478" y="130" font-size="12" font-weight="600" fill="#CA54B0">No</text>
+
+      <!-- Return Error to User (Pink — error) -->
+      <rect x="390" y="150" width="160" height="56" rx="12" fill="#CA54B0" stroke="#CA54B0" stroke-width="2" />
+      <text x="470" y="174" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Return Error</text>
+      <text x="470" y="192" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">to User</text>
+
+      <!-- Arrow: Return Error → END -->
+      <path d="M 470 206 L 470 240 L 1320 240 L 1320 570" fill="none" stroke="#CA54B0" stroke-width="2.4" marker-end="url(#ah-pink)" />
+
+      <!-- Arrow: Valid? → Yes → Route Agent -->
+      <line x1="530" y1="60" x2="580" y2="60" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <text x="548" y="52" font-size="12" font-weight="600" fill="#00A0DF">Yes</text>
+
+      <!-- Route Agent (Sky Blue — default) -->
+      <rect x="580" y="32" width="140" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="650" y="65" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Route Agent</text>
+
+      <!-- Arrow: Route Agent → Task type? -->
+      <line x1="720" y1="60" x2="770" y2="60" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Task type? (decision diamond, Sky Blue) -->
+      <polygon points="850,20 910,60 850,100 790,60" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="850" y="56" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Task</text>
+      <text x="850" y="74" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">type?</text>
+
+      <!-- ═══ ROW 2: Three parallel branches ═══ -->
+
+      <!-- Branch 1: Research -->
+      <line x1="810" y1="100" x2="300" y2="200" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <text x="530" y="145" font-size="12" fill="#4A5568">Research</text>
+
+      <!-- Research Tool Execution -->
+      <rect x="220" y="200" width="160" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="300" y="224" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Tool</text>
+      <text x="300" y="242" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Execution</text>
+
+      <!-- Arrow: Tool → Review Gate -->
+      <line x1="300" y1="256" x2="300" y2="300" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Research Review Gate (Charcoal — human gate) -->
+      <rect x="220" y="300" width="160" height="56" rx="12" fill="#1A202C" stroke="#1A202C" stroke-width="2" />
+      <text x="300" y="333" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Review Gate</text>
+
+      <!-- Retry loop: Review Gate → Tool (dashed Navy Dark) -->
+      <path d="M 220 328 L 190 328 L 190 228 L 220 228" fill="none" stroke="#1A3F6F" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#ah-navy)" />
+      <text x="156" y="280" font-size="11" font-weight="600" fill="#1A3F6F" transform="rotate(-90, 156, 280)">retry</text>
+
+      <!-- Branch 2: Generate -->
+      <line x1="850" y1="100" x2="650" y2="200" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <text x="740" y="145" font-size="12" fill="#4A5568">Generate</text>
+
+      <!-- Generate Tool Execution -->
+      <rect x="570" y="200" width="160" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="650" y="224" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Tool</text>
+      <text x="650" y="242" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Execution</text>
+
+      <line x1="650" y1="256" x2="650" y2="300" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Generate Review Gate -->
+      <rect x="570" y="300" width="160" height="56" rx="12" fill="#1A202C" stroke="#1A202C" stroke-width="2" />
+      <text x="650" y="333" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Review Gate</text>
+
+      <!-- Retry loop -->
+      <path d="M 570 328 L 540 328 L 540 228 L 570 228" fill="none" stroke="#1A3F6F" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#ah-navy)" />
+      <text x="506" y="280" font-size="11" font-weight="600" fill="#1A3F6F" transform="rotate(-90, 506, 280)">retry</text>
+
+      <!-- Branch 3: Analyze -->
+      <line x1="890" y1="100" x2="1000" y2="200" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <text x="960" y="145" font-size="12" fill="#4A5568">Analyze</text>
+
+      <!-- Analyze Tool Execution -->
+      <rect x="920" y="200" width="160" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="1000" y="224" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Tool</text>
+      <text x="1000" y="242" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Execution</text>
+
+      <line x1="1000" y1="256" x2="1000" y2="300" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Analyze Review Gate -->
+      <rect x="920" y="300" width="160" height="56" rx="12" fill="#1A202C" stroke="#1A202C" stroke-width="2" />
+      <text x="1000" y="333" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Review Gate</text>
+
+      <!-- Retry loop -->
+      <path d="M 1080 328 L 1110 328 L 1110 228 L 1080 228" fill="none" stroke="#1A3F6F" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#ah-navy)" />
+      <text x="1144" y="280" font-size="11" font-weight="600" fill="#1A3F6F" transform="rotate(-90, 1144, 280)">retry</text>
+
+      <!-- ═══ ROW 3: Convergence ═══ -->
+
+      <!-- Arrows: Review Gates → Merge Results -->
+      <path d="M 300 356 L 300 420 L 650 420 L 650 450" fill="none" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <line x1="650" y1="356" x2="650" y2="450" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+      <path d="M 1000 356 L 1000 420 L 650 420 L 650 450" fill="none" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Merge Results (Navy — emphasis, key CTA) -->
+      <rect x="550" y="450" width="200" height="56" rx="12" fill="#306FB7" stroke="#306FB7" stroke-width="2" />
+      <text x="650" y="483" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">Merge Results</text>
+
+      <!-- Arrow: Merge → Finalize -->
+      <line x1="750" y1="478" x2="870" y2="478" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- Finalize & Deliver (Sky Blue — default) -->
+      <rect x="870" y="450" width="180" height="56" rx="12" fill="#00A0DF" stroke="#00A0DF" stroke-width="2" />
+      <text x="960" y="474" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Finalize &amp;</text>
+      <text x="960" y="492" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Deliver</text>
+
+      <!-- Arrow: Finalize → END -->
+      <line x1="1050" y1="478" x2="1170" y2="560" stroke="#00A0DF" stroke-width="2.4" marker-end="url(#ah-blue)" />
+
+      <!-- END (oval, Navy Dark — terminal) -->
+      <ellipse cx="1260" cy="560" rx="55" ry="28" fill="#1A3F6F" stroke="#1A3F6F" stroke-width="2" />
+      <text x="1260" y="565" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">END</text>
+
+      <!-- ═══ LEGEND ═══ -->
+      <rect x="1140" y="20" width="240" height="155" rx="6" fill="#FFFFFF" stroke="#D9E2EC" stroke-width="1" />
+      <text x="1156" y="42" font-size="13" font-weight="700" fill="#1A202C">Legend</text>
+
+      <!-- Default: Sky Blue -->
+      <rect x="1156" y="52" width="36" height="18" rx="4" fill="#00A0DF" />
+      <text x="1200" y="65" font-size="11" fill="#1A202C">Default (process step)</text>
+
+      <!-- Terminal: Navy Dark -->
+      <rect x="1156" y="76" width="36" height="18" rx="4" fill="#1A3F6F" />
+      <text x="1200" y="89" font-size="11" fill="#1A202C">START / END terminal</text>
+
+      <!-- Human gate: Charcoal -->
+      <rect x="1156" y="100" width="36" height="18" rx="4" fill="#1A202C" />
+      <text x="1200" y="113" font-size="11" fill="#1A202C">Human review gate</text>
+
+      <!-- Error: Pink -->
+      <rect x="1156" y="124" width="36" height="18" rx="4" fill="#CA54B0" />
+      <text x="1200" y="137" font-size="11" fill="#1A202C">Error / rejection</text>
+
+      <!-- Emphasis: Navy -->
+      <rect x="1156" y="148" width="36" height="18" rx="4" fill="#306FB7" />
+      <text x="1200" y="161" font-size="11" fill="#1A202C">Key CTA (max 1-2)</text>
+
+    </svg>
+  </div>
+</div>
+</body>
+</html>
