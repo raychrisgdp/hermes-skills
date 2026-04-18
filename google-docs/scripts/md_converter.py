@@ -27,11 +27,29 @@ def doc_to_markdown(doc: dict) -> str:
     return "\n".join(l for l in lines if l is not None)
 
 
+def _markdown_prefix_for_named_style(style: str) -> str:
+    """Map Docs named style back to Markdown heading prefix.
+
+    Inverse of import mapping:
+    TITLE -> #
+    HEADING_1 -> ##
+    HEADING_2 -> ###
+    ...
+    """
+    if style == "TITLE":
+        return "# "
+    if style.startswith("HEADING_"):
+        try:
+            n = int(style.split("_")[1])
+        except Exception:
+            return ""
+        return "#" * (n + 1) + " "
+    return ""
+
+
 def _render_paragraph(para: dict) -> str | None:
     style = para.get("paragraphStyle", {}).get("namedStyleType", "")
-    heading = ""
-    if style.startswith("HEADING_"):
-        heading = "#" * int(style.split("_")[1]) + " "
+    heading = _markdown_prefix_for_named_style(style)
 
     bullet = para.get("bullet", {})
     bp = ""

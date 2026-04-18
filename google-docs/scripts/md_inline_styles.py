@@ -263,6 +263,11 @@ if __name__ == "__main__":
         full_text = "".join(style_info)
         if full_text.strip():
             style = para.get("paragraphStyle", {}).get("namedStyleType", "")
-            hp = "#" * int(style.split("_")[1]) + " " if style.startswith("HEADING_") else ""
+            if style == "TITLE":
+                hp = "# "
+            elif style.startswith("HEADING_"):
+                hp = "#" * (int(style.split("_")[1]) + 1) + " "
+            else:
+                hp = ""
             bp = "- " if para.get("bullet") else ""
             print(f"[{style or 'NORMAL'}] {hp}{bp}{full_text.strip()}")
