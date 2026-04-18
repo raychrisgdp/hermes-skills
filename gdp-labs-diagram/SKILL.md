@@ -1,7 +1,7 @@
 ---
 name: gdp-labs-diagram
 description: Generate architecture and process diagrams using the GDP Labs visual style guide. Supports both HTML/SVG (presentation-grade) and Mermaid (source-editable) formats. Based on the GDP Labs Diagram Color Guide.
-version: 1.0.0
+version: 1.0
 author: GDP Labs
 license: proprietary
 dependencies: []
