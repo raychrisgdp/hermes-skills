@@ -50,6 +50,8 @@
 - For tall diagrams, cap the width and let the aspect ratio reduce the height.
 - If the next diagram would clearly spill into the next page, decide deliberately whether to shrink it, split it, or let it start on the next page with a short explanatory lead-in.
 - If the diagram still feels huge, shrink it again instead of letting it float awkwardly through the text.
+- Do not use one fixed width for every diagram; use per-diagram sizing based on aspect ratio.
+- For the full fit/orientation decision rules, see `references/preview-validation.md`.
 
 ## Landscape orientation
 When diagrams are wide (flowchart LR, long sequence diagrams), switch the doc to landscape:

@@ -11,6 +11,7 @@ version: 1.1
 - Publish only the Markdown subtree the user asked for.
 - Do not silently include adjacent agent commands, specs, or roadmap files.
 - For an end-to-end replication recipe with exact CLI/script commands, see `references/command-recipes.md`.
+- For preview validation rules, orientation decisions, and diagram-fit checks, see `references/preview-validation.md`.
 
 ## Multi-doc cross-link sync workflow
 
