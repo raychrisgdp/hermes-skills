@@ -18,10 +18,18 @@ Generate diagrams in the GDP Labs visual style. Two output formats:
 
 Both formats use the same color system, connector rules, and typography from the GDP Labs Diagram Color Guide.
 
+## Canonical Source and Sync
+
+- Treat the loaded local skill path `~/.config/opencode/skill/gdp-labs-diagram/` as the canonical source of the latest learned rules and workflow defaults.
+- When updating `hermes-skills` branches or PRs, sync from that local skill content; do not overwrite local learned rules with older branch snapshots.
+- Keep this skill at version `1.1` for iterative rule and workflow refinements.
+- Keep visual-review rule details in `references/diagram-visual-review-rules.md` so checklist text can be updated without reshaping the full skill body.
+- Do not modify unrelated global OpenCode defaults/config while editing this skill unless the user explicitly asks.
+
 ## Templates
 
-- `templates/sample-agent-workflow.html` — Full SVG sample from the PDF, demonstrating all color overrides
-- `templates/sample-agent-workflow.md` — Same sample as Mermaid with classDef mappings
+- `templates/sample-agent-workflow.md` — Mermaid sample with GDP Labs classDef mappings
+- For HTML/SVG, use the `HTML Structure` section in this file as the starter scaffold.
 
 ---
 
@@ -261,6 +269,13 @@ python3 scripts/svg_heuristics_report.py /absolute/path/to/diagram.html
 7. Mark rules using only directly visible evidence from the artifact.
 8. Auto-fix red mechanical issues; ask the user only when the fix requires a real design tradeoff.
 
+Execution discipline learned from recent review loops:
+
+- If the user provides screenshots, evaluate those first and resolve screenshot-vs-local mismatches explicitly.
+- When reviewing multiple diagrams in one browser session, evaluate sequentially (`navigate -> inspect -> note`) rather than running parallel page evaluations that can mix state.
+- After accepting HTML/SVG fixes, regenerate canonical PNG plus fit-check PNG artifacts in the same pass so stale exports do not survive in docs.
+- Run a quick terminology-consistency pass against neighboring docs for key labels before finalizing diagram text.
+
 Automation preference:
 
 - Prefer script-backed validation for deterministic or semi-deterministic checks.
@@ -324,7 +339,6 @@ Review discipline:
 - Ignore browser/editor UI chrome such as selection handles, toolbar overlays, or temporary highlights when scoring the diagram.
 - Avoid stacked or duplicate boundary-to-target arrows (for example two vertical arrows that read as one). Prefer one direct edge with a single arrowhead.
 - For cross-cutting requirement boxes, avoid the “floating note” look: anchor them with a short orthogonal dashed connector and concise label (for example “applies to all lifecycle paths”).
-- Ignore browser/editor UI chrome such as selection handles, toolbar overlays, or temporary highlights when scoring the diagram.
 
 ---
 
