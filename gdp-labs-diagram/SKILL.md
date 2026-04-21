@@ -112,6 +112,7 @@ Rule: solid = forward/active. Dashed = backward/optional/async. Default to one a
 - Center arrows on source/target box centers
 - If arrows "look off" visually, check numeric center alignment first
 - If a label can only fit by sitting on top of a connector, move the connector or move the label. Do not let text rest on the stroke.
+- A connector must have a visibly readable shaft, not just an arrowhead stub. If the shaft becomes too short to read cleanly, increase the lane length or move the target box.
 
 ---
 
@@ -285,6 +286,7 @@ Current script coverage:
 - If a persistence, recall, or always-on runtime path is core behavior, draw it with a solid active connector. Reserve gray dashed lines for optional or indirect paths only.
 - If a capability is described in the prose as part of the runtime, give it at least one explicit connection. Do not leave important boxes visually orphaned.
 - If a legend is needed, prefer a compact horizontal legend bar or footer legend over a large detached legend card.
+- For requirements-level conceptual diagrams, prefer the simplest semantic palette that still explains the picture. A strong default is: one dark-blue canonical/core node, one light-blue family for the other nodes, and tinted boundaries. If that makes the semantics obvious, omit the legend entirely.
 - Legends must remain readable at fit, must not be clipped, and must explain only visible boxes, boundaries, and line styles.
 - Footer metadata such as `Last update` should be omitted unless explicitly requested; it competes with fit readability.
 - For split diagrams, use descriptive titles such as `Gateway Routing Ingress` rather than generic `I` / `II` labels.
@@ -315,80 +317,14 @@ Use this checklist for diagram review. It is intentionally visual-only. Do not m
 Review discipline:
 
 - When a user points out a defect, verify it visually from the rendered PNG or inserted doc view before marking the rule status.
+- If the user provides screenshot feedback, treat that screenshot as the source of truth for the review pass and resolve screenshot-vs-local mismatches explicitly.
 - Mark a rule red only when the issue is directly visible in the artifact.
 - Mark a rule yellow only when it is visible but arguable or still acceptable for draft review.
 - Do not mark non-visual architecture concerns in this matrix; review those separately.
 - Ignore browser/editor UI chrome such as selection handles, toolbar overlays, or temporary highlights when scoring the diagram.
-
-## Validation and Fix Learnings
-
-Lessons from validating and fixing 7 Hermes Agent architecture diagrams against G1–G9.
-
-### Fix priority by rule frequency
-
-After evaluating 7 HTML/SVG diagrams, the yellow cluster was G1, G5, G8. Target in this order:
-
-1. **G1** (5/7 had issues) — whitespace, crop tightness, canvas density
-2. **G5** (4/7) — tee junction complexity, branch symmetry
-3. **G8** (4/7) — row alignment, column balance, vertical gaps
-4. **G4** (2/7) — title-zone proximity, route busyness
-5. **G7** (2/7) — tight literal text, box width
-
-G2, G3, G6, G9 tend to be fully clean once the initial style is locked. Re-check them only after major re-layouts.
-
-### Coordinate-level fix patterns
-
-**G1 — Canvas efficiency:**
-- If `viewBox` height is within 50px of the lowest content, expand it to give the legend breathing room
-- If a boundary has >30% empty interior, shrink the boundary or push nodes into the gap before expanding the canvas
-- Prefer `width: max-content` + `overflow: hidden` — never `min-height: 100vh`
-- Render at 2x for Google Docs downscaling; size text for the final inserted dimension, not the browser preview
-
-**G4 — Title-zone proximity:**
-- Minimum 60px gap between a container's title text (y) and the first connector route inside that container
-- If a connector sits closer than 60px to the title, push the first node down rather than rerouting the connector
-- Long vertical routes through adjacent columns (e.g., a return path at x=250 passing the Context column) should be pushed further outward (x=230 or x=240) to reduce visual busyness
-
-**G5 — Tee junctions:**
-- 3-way tees are acceptable if the branches are balanced in length and angle
-- 4-way tees (one source, four targets) should be split into two 2-way tees or reorganized into a hierarchy
-- Tee trunks should be vertically centered between the outermost branch targets
-- If one branch is significantly longer than the others, the tee reads as asymmetric — rebalance by moving target boxes
-
-**G7 — Box widths:**
-- Minimum node width for single-word labels: 120px
-- Minimum for two-word labels: 140px
-- Minimum for three-word or camelCase labels: 160px
-- Delegate/helper boxes (90px) are almost always too narrow — default to 120px
-
-**G8 — Column balance:**
-- When a multi-column layout has 5+ more nodes in one column, the visual weight is asymmetric
-- Either add spacer nodes, widen the heavier column, or move some nodes to a shared lower band
-- Vertical gaps between tiers should be at least 80px for readability at doc fit; 66px is too tight
-- Sibling boxes in the same row should share the same y and height unless the difference carries meaning
-
-### Anti-patterns discovered during validation
-
-1. **Connector sitting in the title zone** — a route at y=236 inside a container whose title is at y=154 leaves only 82px, which reads as "route near the title" at doc fit. Push the first node to y=210+ for a clean gap.
-
-2. **Asymmetric tee from a central node** — when one source feeds 3+ targets and one branch is 2x longer than the others, the diagram feels unbalanced. Split into a two-stage tee or reorganize targets into rows.
-
-3. **Floating node at same y as contained node** — when Optional User Model (inside Curation, y=470) and Honcho Provider (outside, y=470) share a y-coordinate but different containment, the reader can't tell which boundary Honcho Provider belongs to. Move the floating node into the boundary it logically belongs to, or add clear visual separation.
-
-4. **Tight ellipse/oval text** — terminal shapes (ellipse, stadium) need at least 8px horizontal padding between text and the shape edge at doc fit. If text is 14px, the ellipse rx should be at least (text_width/2 + 8).
-
-5. **Legend competing with content** — if the legend box sits within 30px of the lowest boundary, it reads as part of the diagram. Move it to at least 40px below the lowest boundary, or reduce the lowest boundary.
-
-### Validation workflow (recommended)
-
-1. Render HTML → PNG at 2x resolution
-2. Run `scripts/docs_fit_check.py` on the PNG to check G1 at doc fit
-3. Run `scripts/png_margin_report.py` to quantify blank margins
-4. Run `scripts/svg_heuristics_report.py` to flag diagonals, crossings, title-zone violations
-5. Evaluate G2, G5, G6, G8, G9 visually from the rendered PNG — these are composition rules that scripts can't fully automate
-6. Mark each rule green/yellow/red with concrete evidence
-7. Auto-fix red mechanical issues (coordinate errors, missing arrowheads, wrong colors)
-8. Ask the user only when a fix requires a design tradeoff (split vs single, reorganize columns, change narrative flow)
+- Avoid stacked or duplicate boundary-to-target arrows (for example two vertical arrows that read as one). Prefer one direct edge with a single arrowhead.
+- For cross-cutting requirement boxes, avoid the “floating note” look: anchor them with a short orthogonal dashed connector and concise label (for example “applies to all lifecycle paths”).
+- Ignore browser/editor UI chrome such as selection handles, toolbar overlays, or temporary highlights when scoring the diagram.
 
 ---
 
