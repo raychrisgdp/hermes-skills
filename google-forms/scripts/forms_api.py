@@ -99,18 +99,24 @@ def create_form(args):
             "title": args.title,
         }
     }
-    if args.description:
-        body["info"]["description"] = args.description
 
-    # Collect question creation requests
+    result = forms_s.forms().create(body=body).execute()
+    form_id = result["formId"]
+
+    # Collect description and question requests
     requests = []
+    if args.description:
+        requests.append({
+            "updateFormInfo": {
+                "info": {"description": args.description},
+                "updateMask": "description",
+            }
+        })
+
     for q_json in (args.question or []):
         q = json.loads(q_json)
         req = build_question_request(q)
         requests.append(req)
-
-    result = forms_s.forms().create(body=body).execute()
-    form_id = result["formId"]
 
     if requests:
         batch_body = {"requests": requests}
@@ -126,7 +132,7 @@ def build_question_request(q):
     title = q["title"]
     required = q.get("required", False)
 
-    question = {"title": title, "required": required}
+    question = {"required": required}
 
     if qtype == "text":
         question["textQuestion"] = {"paragraph": False}
@@ -175,7 +181,7 @@ def build_question_request(q):
     else:
         raise ValueError(f"Unknown question type: {qtype}")
 
-    return {"createItem": {"item": {"questionItem": {"question": question}}, "location": {"index": 0}}}
+    return {"createItem": {"item": {"title": title, "questionItem": {"question": question}}, "location": {"index": 0}}}
 
 
 def get_form_metadata(forms_s, form_id):
