@@ -320,6 +320,76 @@ Review discipline:
 - Do not mark non-visual architecture concerns in this matrix; review those separately.
 - Ignore browser/editor UI chrome such as selection handles, toolbar overlays, or temporary highlights when scoring the diagram.
 
+## Validation and Fix Learnings
+
+Lessons from validating and fixing 7 Hermes Agent architecture diagrams against G1–G9.
+
+### Fix priority by rule frequency
+
+After evaluating 7 HTML/SVG diagrams, the yellow cluster was G1, G5, G8. Target in this order:
+
+1. **G1** (5/7 had issues) — whitespace, crop tightness, canvas density
+2. **G5** (4/7) — tee junction complexity, branch symmetry
+3. **G8** (4/7) — row alignment, column balance, vertical gaps
+4. **G4** (2/7) — title-zone proximity, route busyness
+5. **G7** (2/7) — tight literal text, box width
+
+G2, G3, G6, G9 tend to be fully clean once the initial style is locked. Re-check them only after major re-layouts.
+
+### Coordinate-level fix patterns
+
+**G1 — Canvas efficiency:**
+- If `viewBox` height is within 50px of the lowest content, expand it to give the legend breathing room
+- If a boundary has >30% empty interior, shrink the boundary or push nodes into the gap before expanding the canvas
+- Prefer `width: max-content` + `overflow: hidden` — never `min-height: 100vh`
+- Render at 2x for Google Docs downscaling; size text for the final inserted dimension, not the browser preview
+
+**G4 — Title-zone proximity:**
+- Minimum 60px gap between a container's title text (y) and the first connector route inside that container
+- If a connector sits closer than 60px to the title, push the first node down rather than rerouting the connector
+- Long vertical routes through adjacent columns (e.g., a return path at x=250 passing the Context column) should be pushed further outward (x=230 or x=240) to reduce visual busyness
+
+**G5 — Tee junctions:**
+- 3-way tees are acceptable if the branches are balanced in length and angle
+- 4-way tees (one source, four targets) should be split into two 2-way tees or reorganized into a hierarchy
+- Tee trunks should be vertically centered between the outermost branch targets
+- If one branch is significantly longer than the others, the tee reads as asymmetric — rebalance by moving target boxes
+
+**G7 — Box widths:**
+- Minimum node width for single-word labels: 120px
+- Minimum for two-word labels: 140px
+- Minimum for three-word or camelCase labels: 160px
+- Delegate/helper boxes (90px) are almost always too narrow — default to 120px
+
+**G8 — Column balance:**
+- When a multi-column layout has 5+ more nodes in one column, the visual weight is asymmetric
+- Either add spacer nodes, widen the heavier column, or move some nodes to a shared lower band
+- Vertical gaps between tiers should be at least 80px for readability at doc fit; 66px is too tight
+- Sibling boxes in the same row should share the same y and height unless the difference carries meaning
+
+### Anti-patterns discovered during validation
+
+1. **Connector sitting in the title zone** — a route at y=236 inside a container whose title is at y=154 leaves only 82px, which reads as "route near the title" at doc fit. Push the first node to y=210+ for a clean gap.
+
+2. **Asymmetric tee from a central node** — when one source feeds 3+ targets and one branch is 2x longer than the others, the diagram feels unbalanced. Split into a two-stage tee or reorganize targets into rows.
+
+3. **Floating node at same y as contained node** — when Optional User Model (inside Curation, y=470) and Honcho Provider (outside, y=470) share a y-coordinate but different containment, the reader can't tell which boundary Honcho Provider belongs to. Move the floating node into the boundary it logically belongs to, or add clear visual separation.
+
+4. **Tight ellipse/oval text** — terminal shapes (ellipse, stadium) need at least 8px horizontal padding between text and the shape edge at doc fit. If text is 14px, the ellipse rx should be at least (text_width/2 + 8).
+
+5. **Legend competing with content** — if the legend box sits within 30px of the lowest boundary, it reads as part of the diagram. Move it to at least 40px below the lowest boundary, or reduce the lowest boundary.
+
+### Validation workflow (recommended)
+
+1. Render HTML → PNG at 2x resolution
+2. Run `scripts/docs_fit_check.py` on the PNG to check G1 at doc fit
+3. Run `scripts/png_margin_report.py` to quantify blank margins
+4. Run `scripts/svg_heuristics_report.py` to flag diagonals, crossings, title-zone violations
+5. Evaluate G2, G5, G6, G8, G9 visually from the rendered PNG — these are composition rules that scripts can't fully automate
+6. Mark each rule green/yellow/red with concrete evidence
+7. Auto-fix red mechanical issues (coordinate errors, missing arrowheads, wrong colors)
+8. Ask the user only when a fix requires a design tradeoff (split vs single, reorganize columns, change narrative flow)
+
 ---
 
 # Mermaid Diagrams
