@@ -5,28 +5,11 @@
  * Deploy as Web App:
  *   Execute as: Me
  *   Who has access: Anyone
- *
- * SECURITY: This web-app uses a shared secret for authentication.
- * The secret is passed in each request as payload["secret"].
- * Set SHARED_SECRET to a random value before deploying.
  */
-
-var SHARED_SECRET = ""; // Set this to a random secret string before deploying
 
 function doPost(e) {
   try {
-    if (!SHARED_SECRET) {
-      // Fail closed: never process requests without an auth secret configured.
-      return respond({ error: 'Server not configured: SHARED_SECRET is empty. Set it in the script and redeploy.' });
-    }
-
     var payload = JSON.parse(e.postData.contents);
-
-    var reqSecret = payload.secret || "";
-    if (reqSecret !== SHARED_SECRET) {
-      return respond({ error: 'Unauthorized: invalid or missing secret' });
-    }
-
     var action = payload.action;
     if (!action) return respond({ error: 'Missing "action" field' });
 
