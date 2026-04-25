@@ -88,7 +88,7 @@ Skip this if you already have a project with Docs and Drive APIs enabled.
 4. Name: anything (e.g. `hermes-desktop`)
 5. Click **Create**
 6. A dialog shows the client ID and secret. Click **Download JSON**
-7. Save the file somewhere safe (e.g. `~/Downloads/client_secret_....json`)
+7. Save the file somewhere safe (for example `<path-to-client-secret.json>`)
 
 The downloaded file looks like this:
 
@@ -96,7 +96,7 @@ The downloaded file looks like this:
 {
   "installed": {
     "client_id": "123456789-xxxxx.apps.googleusercontent.com",
-    "client_secret": "GOCSPX-xxxxx",
+    "client_secret": "<oauth-client-secret>",
     "redirect_uris": ["http://localhost"]
   }
 }
@@ -105,7 +105,7 @@ The downloaded file looks like this:
 ## Step 5 — Store the client secret
 
 ```
-python3 ~/.hermes/skills/productivity/google-docs/scripts/setup.py --client-secret ~/Downloads/client_secret_XXXXX.json
+python3 ~/.hermes/skills/productivity/google-docs/scripts/setup.py --client-secret <path-to-client-secret.json>
 ```
 
 This copies the file to `~/.hermes/google_client_secret.json`.
